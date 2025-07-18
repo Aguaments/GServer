@@ -86,8 +86,10 @@ namespace agent{
         using ConfigVarMap = std::map<std::string, ConfigVarBase::ptr>;
 
         template<typename T>
-        static typename ConfigVar<T>::ptr Lookup(const std::string& name, const T& default_value, const std::string& description = "")
+        static typename ConfigVar<T>::ptr Lookup(const std::string& s_name, const T& default_value, const std::string& description = "")
         {
+            auto name = s_name;
+            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
             auto tmp = Lookup<T>(name);
             if(tmp)
             { 
@@ -115,7 +117,10 @@ namespace agent{
             return std::dynamic_pointer_cast<ConfigVar<T>>(it -> second);
         }
 
+        
         static void LoadFromYaml(const YAML::Node& root);
+        static ConfigVarBase::ptr LookupBase(const std::string& name);
+        
     private:
         static ConfigVarMap m_data;
     };
