@@ -3,6 +3,10 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
+agent::ConfigVar<int>::ptr g_int_value_config = agent::Config::Lookup("System.port", (int)8080, "System port"); 
+agent::ConfigVar<float>::ptr g_float_value_config = agent::Config::Lookup("System.value", (float)10.2f, "System value");
+
+
 void test_yaml()
 {
     try{
@@ -45,10 +49,21 @@ void print_yaml(const YAML::Node& node, int level)
     }
 }
 
-agent::ConfigVar<int>::ptr g_int_value_config = agent::Config::Lookup("System.port", (int)8080, "System port"); 
+void test_config()
+{
+    AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_int_value_config -> getValue();
+    AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_float_value_config -> getValue();
+
+    YAML::Node root = YAML::LoadFile("./config/log.yml");
+    agent::Config::LoadFromYaml(root);
+
+    AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_int_value_config -> getValue();
+    AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_float_value_config -> getValue();
+}
+
+
 int main()
 {
-    auto root = YAML::LoadFile("./config/log.yml");
-    print_yaml(root, 0);
+    test_config();
     return 0;
 }

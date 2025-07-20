@@ -12,17 +12,7 @@
 #include "utils.h"
 #include "singleton.h"
 
-/*******************************************************************************
-  * FILENAME    : log.h
-  * Date        : 2025/07/09 14:30:00
-  * Author      : [Guanyue Gao]
-  * Version     : [1.0.0]
-  * Decription  : 日志相关   LogLevel --> LogFormator --> LogAppender --> Logger
-  *                                            |               |
-  *                                            |                -------> SoutLogAppender / FileLogAppender
-  *                                            |
-  *                                             -------> many formatter Item
- *******************************************************************************/
+
 
 // 普通的字符串输出
 #define AGENT_LOG_LEVEL(logger, level)\

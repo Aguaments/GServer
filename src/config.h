@@ -80,11 +80,20 @@ namespace agent{
         T m_val;
     };
 
+    /****************************************************************************
+    * @class 
+    * @brief 配置器部分
+    * @author Guanyue Gao
+    * @since 2025-07-20 23:56:18
+    ****************************************************************************/
     class Config
     {
     public:
         using ConfigVarMap = std::map<std::string, ConfigVarBase::ptr>;
-
+        /****************************************************************************
+        * @name 
+        * @brief Lookup函数主要用于查询配置项，如果存在则返回，不存在则创建
+        *****************************************************************************/
         template<typename T>
         static typename ConfigVar<T>::ptr Lookup(const std::string& s_name, const T& default_value, const std::string& description = "")
         {
