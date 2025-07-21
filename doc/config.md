@@ -44,19 +44,48 @@ public:
     }
 }；
 
-// 转换的偏特化模板，vector的转化
+// 转换的偏特化模板，string to vector的转化
 template<class T>
 class LexicalCast<std::string, std::vector<T>>
 {
-    T operator()(const std::string& v)
+    std::vector<T> operator()(const std::string& v)
     {
-        YAML::Node node = YAML::Load()
+        YAML::Node node = YAML::Load(v)； // 支持从string转化为YAML::Node类型
+        typename std::vector<T> vec;
+        std::stringstream ss;
+        for(size_t i = 0； i < node.size(); ++i)
+        {
+            ss.str(""); // 清空缓冲区
+            ss << node[i];
+            vec.push_back(LexicalCast<std::string, T>()(ss.str()));
+        }
+
+        return vec;
     }
 }
 
 
+// 转换的偏特化模板，vector to string的转
+template<class T>
+class LexcialCast<std::vector<T>, std::string>
+{
+public:
+    std::string operator()(const std::vector<T>& v)
+    {
+        YAML::Node node;
 
-// 容器偏特化，支持vector
+        for(auto& i: v)
+        {
+            node.push_back(YAML::Load(LexicalCast<T, std::string>()(i)));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+}
+
+// set: 具备排序 和 去重功能
+// unordered_set: 无序 具备去重
 ```
 
 2. 思路

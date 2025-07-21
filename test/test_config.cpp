@@ -4,8 +4,16 @@
 #include <yaml-cpp/yaml.h>
 
 agent::ConfigVar<int>::ptr g_int_value_config = agent::Config::Lookup("system.port", (int)8080, "System port"); 
+agent::ConfigVar<float>::ptr g_int_value_x_config = agent::Config::Lookup("system.port", (float)8080, "System port"); 
+
+
 agent::ConfigVar<float>::ptr g_float_value_config = agent::Config::Lookup("system.value", (float)10.2f, "System value");
 agent::ConfigVar<std::vector<int>>::ptr g_int_vector_value_config = agent::Config::Lookup("system.vec", std::vector<int>{1,2}, "System vector");
+agent::ConfigVar<std::list<int>>::ptr g_int_list_value_config = agent::Config::Lookup("system.list", std::list<int>{1,2}, "System list");
+agent::ConfigVar<std::set<int>>::ptr g_int_set_value_config = agent::Config::Lookup("system.set", std::set<int>{1,2}, "System set");
+agent::ConfigVar<std::unordered_set<int>>::ptr g_int_unordered_set_value_config = agent::Config::Lookup("system.unordered_set", std::unordered_set<int>{1,2}, "System unordered_set");
+agent::ConfigVar<std::map<std::string, int>>::ptr g_int_map_value_config = agent::Config::Lookup("system.map", std::map<std::string, int>{{"k", 2}}, "System map");
+agent::ConfigVar<std::unordered_map<std::string, int>>::ptr g_int_unordered_map_value_config = agent::Config::Lookup("system.unordered_map", std::unordered_map<std::string, int>{{"k", 2}}, "System unordered_map");
 
 
 void test_yaml()
@@ -54,25 +62,112 @@ void test_config()
 {
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_int_value_config -> getValue();
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_float_value_config -> getValue();
-    auto vec = g_int_vector_value_config -> getValue();
-    for(auto& i : vec){
-        AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "item before: " << i;
+
+    #define XX(target, name, prefix)\
+    {\
+        auto vec =  target -> getValue();\
+        for(auto& i : vec){\
+            AGENT_LOG_INFO(AGENT_LOG_ROOT()) << #prefix " " #name " : " << i;\
+        }\
+        AGENT_LOG_INFO(AGENT_LOG_ROOT()) << #prefix " " #name " yaml: " << target -> toString();\
     }
+    #define XX_M(target, name, prefix)\
+    {\
+        auto vec =  target -> getValue();\
+        for(auto& i : vec){\
+            AGENT_LOG_INFO(AGENT_LOG_ROOT()) << #prefix " " #name " : {" << i.first << ": " << i.second << "}";\
+        }\
+        AGENT_LOG_INFO(AGENT_LOG_ROOT()) << #prefix " " #name " yaml: " << target -> toString();\
+    }
+
+    XX(g_int_vector_value_config, int_vec, before);
+    XX(g_int_list_value_config, int_list, before);
+    XX(g_int_set_value_config, int_set, before);
+    XX(g_int_unordered_set_value_config, int_unordered_set, before);
+    XX_M(g_int_map_value_config, int_map, before);
+    XX_M(g_int_unordered_map_value_config, int_unordered_map, before);
 
     YAML::Node root = YAML::LoadFile("../config/log.yml");
     agent::Config::LoadFromYaml(root);
 
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_int_value_config -> getValue();
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_float_value_config -> getValue();
-    vec = g_int_vector_value_config -> getValue();
-    for(auto& i : vec){
-        AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "item after: " << i;
-    }
+    
+    XX(g_int_vector_value_config, int_vec, after);
+    XX(g_int_list_value_config, int_list, after);
+    XX(g_int_set_value_config, int_set, after);
+    XX(g_int_unordered_set_value_config, int_unordered_set, after);
+    XX_M(g_int_map_value_config, int_map, after);
+    XX_M(g_int_unordered_map_value_config, int_unordered_map, after);
 }
 
+class Person
+{
+public:
+    Person(){};
+    std::string m_name;
+    int age = 0;
+    bool sex = 0;
+
+    std::string toString() const
+    {
+        std::stringstream ss;
+        ss << "[Person name = " << m_name
+        << " age = " << age
+        << " sex = " << sex
+        << "]";
+        return ss.str();
+    }
+};
+
+namespace agent{
+    // std::string <----> Person
+    template<>
+    class LexicalCast<std::string, Person>
+    {
+    public:
+        Person operator()(const std::string& v)
+        {
+            std::cout << v << std::endl;
+            YAML::Node node = YAML::Load(v);
+            Person p;
+            p.m_name = node["name"].as<std::string>();
+            p.age = node["age"].as<int>();
+            p.sex = node["sex"].as<bool>();
+            return p;
+        }
+    };
+
+    template<>
+    class LexicalCast<Person, std::string>
+    {
+    public:
+        std::string operator()(const Person& v)
+        {
+            YAML::Node node; // 明确node是一个序列节点， 直接YAML::Node node;也可以，是隐式的
+            node["name"] = v.m_name;
+            node["age"] = v.age;
+            node["sex"] = v.sex;
+            std::stringstream ss;
+            ss << node;
+            return ss.str();
+        }
+    };
+}
+
+agent::ConfigVar<Person>::ptr g_person = agent::Config::Lookup("class.person", Person(), "system person");
+
+void test_class()
+{
+    AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_person -> getValue().toString() << " - " << g_person -> toString();
+    YAML::Node root = YAML::LoadFile("../config/log.yml");
+    agent::Config::LoadFromYaml(root);
+    AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_person -> getValue().toString() << " - " << g_person -> toString();
+}
 
 int main()
 {
-    test_config();
+    // test_config();
+    test_class();
     return 0;
 }

@@ -17,3 +17,16 @@ system:
   vec:
     - 7
     - 4
+  list: [6, 0]
+  set: [9, 3]
+  unordered_set: [4, 7]
+  map:
+    k: 100
+  unordered_map:
+    k: 1000
+  
+class:
+  person:
+    name: ggy
+    age: 27
+    sex: 1
