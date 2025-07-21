@@ -388,6 +388,7 @@ namespace agent{
     /**************************************************************/
     FileLogAppender::FileLogAppender(const std::string filename)
     :m_filename(filename)
+    ,m_filestream(m_filename, std::ios::app)
     {}
 
     void FileLogAppender::log(Logger::ptr logger, LogLevel ll, LogEvent::ptr event)

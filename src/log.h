@@ -184,6 +184,7 @@ namespace agent{
     public:
         using ptr =  std::shared_ptr<FileLogAppender>;
         FileLogAppender(const std::string filename);
+        ~FileLogAppender(){m_filestream.close();}
 
         virtual void log(std::shared_ptr<Logger> logger, LogLevel ll, LogEvent::ptr event) override;
 

@@ -3,8 +3,9 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
-agent::ConfigVar<int>::ptr g_int_value_config = agent::Config::Lookup("System.port", (int)8080, "System port"); 
-agent::ConfigVar<float>::ptr g_float_value_config = agent::Config::Lookup("System.value", (float)10.2f, "System value");
+agent::ConfigVar<int>::ptr g_int_value_config = agent::Config::Lookup("system.port", (int)8080, "System port"); 
+agent::ConfigVar<float>::ptr g_float_value_config = agent::Config::Lookup("system.value", (float)10.2f, "System value");
+agent::ConfigVar<std::vector<int>>::ptr g_int_vector_value_config = agent::Config::Lookup("system.vec", std::vector<int>{1,2}, "System vector");
 
 
 void test_yaml()
@@ -53,12 +54,20 @@ void test_config()
 {
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_int_value_config -> getValue();
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_float_value_config -> getValue();
+    auto vec = g_int_vector_value_config -> getValue();
+    for(auto& i : vec){
+        AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "item before: " << i;
+    }
 
     YAML::Node root = YAML::LoadFile("./config/log.yml");
     agent::Config::LoadFromYaml(root);
 
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_int_value_config -> getValue();
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_float_value_config -> getValue();
+    vec = g_int_vector_value_config -> getValue();
+    for(auto& i : vec){
+        AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "item after: " << i;
+    }
 }
 
 

@@ -26,3 +26,25 @@ logger ---->  appender.1 ----> Formatter
               appender.3 ----> Formatter
 
 Logger ----> LogEventWrapper（控制LogEvent的生命周期，在析构中做日志打印操作）----> LogEvent 
+
+# 日志开发中编程注意事项
+## ofstream文件流
+1. 如果其成为成员变量，不需要在类的析构函数中显式调用close方法，ofstream的析构函数会自动调用
+2. 常见的文件打开模式（非ofstream独有）：
+    - std::ios::in（文件不存在不会创建文件）
+    - std::ios::out（文件不存在会创建文件）
+    - std::ios::app（文件不存在会创建文件）
+3. 文件的创建方式
+```c++
+// 创建并打开文件
+ofstream ofs("filename", std::ios::out | std::ios::app); // 默认std::ios::out模式
+
+// 需要使用open显示调用并打开文件
+ofstream ofs；
+ofs.open("filename", mode);
+```
+## ifstream
+## fstream
+```c++
+fstream file("filename", std::ios::in | std::ios::out | std::ios::app);
+```

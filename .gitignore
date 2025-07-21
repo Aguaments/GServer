@@ -2,4 +2,5 @@
 .build/
 build/
 bin
-libs
+lib
+
