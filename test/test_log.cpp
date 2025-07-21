@@ -27,7 +27,7 @@ int main(){
     // logger -> setLevel(agent::LogLevel::INFO);
     LogAppender::ptr sla(new SoutLogAppender);
     logger -> addAppender(sla);
-    LogAppender::ptr fla(new FileLogAppender("./log.txt"));
+    LogAppender::ptr fla(new FileLogAppender("../log/log.txt"));
     logger -> addAppender(fla);
     for(int i = 0; i < 5; ++ i){
         AGENT_LOG_ERROR(logger) << "hello world";

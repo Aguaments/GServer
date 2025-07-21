@@ -11,7 +11,7 @@ agent::ConfigVar<std::vector<int>>::ptr g_int_vector_value_config = agent::Confi
 void test_yaml()
 {
     try{
-        YAML::Node  root = YAML::LoadFile("./config/log.yml");
+        YAML::Node  root = YAML::LoadFile("../config/log.yml");
         std::cout << root.Type() << std::endl;
         AGENT_LOG_INFO(AGENT_LOG_ROOT()) << root;
     }
@@ -59,7 +59,7 @@ void test_config()
         AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "item before: " << i;
     }
 
-    YAML::Node root = YAML::LoadFile("./config/log.yml");
+    YAML::Node root = YAML::LoadFile("../config/log.yml");
     agent::Config::LoadFromYaml(root);
 
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_int_value_config -> getValue();

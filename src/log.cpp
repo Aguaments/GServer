@@ -388,7 +388,6 @@ namespace agent{
     /**************************************************************/
     FileLogAppender::FileLogAppender(const std::string filename)
     :m_filename(filename)
-    ,m_filestream(m_filename, std::ios::app)
     {}
 
     void FileLogAppender::log(Logger::ptr logger, LogLevel ll, LogEvent::ptr event)
@@ -478,7 +477,7 @@ namespace agent{
     {
         m_root.reset(new Logger());
         m_root -> addAppender(LogAppender::ptr(new SoutLogAppender()));
-        m_root -> addAppender(LogAppender::ptr(new FileLogAppender("./log.txt")));
+        m_root -> addAppender(LogAppender::ptr(new FileLogAppender("../log/log.txt")));
     }
 
     Logger::ptr LoggerManager::getLogger(const std::string& name)

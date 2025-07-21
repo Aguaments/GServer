@@ -1,0 +1,19 @@
+log:
+  - name: root
+    type: info
+    formatter: '%d%T%n'
+    appender: 
+      - name: FileLogAppender
+        file: log.txt
+      - name: SoutLogAppender
+  - name: system
+    type: debug
+    formatter: '%d%T%n'
+    appender:
+    - name: SoutLogAppender
+system:
+  port: 9000
+  value: 11.3
+  vec:
+    - 7
+    - 4
