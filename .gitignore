@@ -1,7 +1,7 @@
 .vscode/
 .build/
 build/
-bin
-lib
-log
+bin/
+lib/
+log/
 
