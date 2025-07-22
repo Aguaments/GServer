@@ -7,6 +7,8 @@
 #include <sstream>
 #include <unordered_map>
 
+#include <yaml-cpp/yaml.h>
+
 #include <stdint.h>
 
 #include "utils.h"
@@ -40,11 +42,13 @@
 #define AGENT_LOG_FMT_FATAL(logger, fmt, ...) AGENT_LOG_FMT_LEVEL(logger, agent::LogLevel::FATAL, fmt,  __VA_ARGS__)
 
 #define AGENT_LOG_ROOT() agent::LoggerMgr::getInstance() -> getRoot()
+#define AGENT_LOG_BY_NAME(name) agent::LoggerMgr::getInstance() -> getLogger(name)
 
 
 namespace agent{
 
     class Logger;
+    class LoggerManager;
 
     enum class LogLevel{
         UNKONWN = 0,
@@ -56,6 +60,7 @@ namespace agent{
     };
 
     const char* LogLevelToString(const LogLevel& ll) ;
+    const LogLevel FromStringToLogLevel(const std::string& str);
 
     /*******************************************************************************
       * Class name    : [LogLevel]
@@ -138,7 +143,8 @@ namespace agent{
             virtual void format(std::ostream& os, std::shared_ptr<Logger> logger, LogLevel ll, LogEvent::ptr event) = 0;
         };
         void init();
-        void print();
+        
+        bool isError() const {return m_error;} // 
     private:
         std::string m_pattern;
         std::vector<FormatItem::ptr> m_items;
@@ -167,6 +173,7 @@ namespace agent{
 
     protected:
         LogLevel m_level;
+        bool m_hasFormatter = false;
         LogFormatter::ptr m_formatter;
     };
 
@@ -203,6 +210,7 @@ namespace agent{
       * Author        : [Your Name Here]
      *******************************************************************************/
     class Logger: public std::enable_shared_from_this<Logger>{
+        friend class LoggerManager;
     public:
         using ptr =  std::shared_ptr<Logger>;
         Logger(const std::string& name = "basic");
@@ -215,9 +223,14 @@ namespace agent{
         
         void addAppender(LogAppender::ptr appender);
         void delAppender(LogAppender::ptr appender);
+        void clearAppenders();
 
         LogLevel getLevel() const {return m_level;};
         void setLevel(const LogLevel level){m_level = level;};
+        LogFormatter::ptr getFormatter(){return m_formatter;};
+        void setFormatter(LogFormatter::ptr val);
+        void setFormatter(const std::string& val);
+        
 
         const std::string& getName() const {return m_name;}
 
@@ -228,6 +241,7 @@ namespace agent{
         LogLevel m_level;
         std::list<LogAppender::ptr> m_appenders;    // appender list
         LogFormatter::ptr m_formatter;              // default formater
+        Logger::ptr m_root;
     };
 
     /*******************************************************************************

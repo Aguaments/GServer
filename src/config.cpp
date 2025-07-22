@@ -1,12 +1,11 @@
 #include "config.h"
 
 namespace agent{
-    Config::ConfigVarMap Config::m_data;
 
     ConfigVarBase::ptr Config::LookupBase(const std::string& name)
     {
-        auto it = m_data.find(name);
-        return it == m_data.end() ? nullptr: it -> second; 
+        auto it = GetDatas().find(name);
+        return it == GetDatas().end() ? nullptr: it -> second; 
     }
 
     static void ListAllMember(const std::string& prefix, 

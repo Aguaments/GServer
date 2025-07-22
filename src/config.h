@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <iostream>
+#include <functional>
 
 #include <boost/lexical_cast.hpp>
 #include <yaml-cpp/yaml.h>
@@ -290,6 +291,7 @@ namespace agent{
     {
     public:
         using ptr = std::shared_ptr<ConfigVar>;
+        using on_change_cb = std::function<void(const T& old_value, const T& new_value)>;
         
         ConfigVar(const std::string& name, const T& default_value, const std::string& description = "")
         :ConfigVarBase(name, description)
@@ -328,11 +330,46 @@ namespace agent{
         }
 
         const T getValue() const {return m_val;}
-        void setValue(const T& v) {m_val = v;}
+        void setValue(const T& v) 
+        {   
+            if(v == m_val)
+            {
+                return;
+            }
+            
+            for(auto& i : m_cbs)
+            {
+                i.second(m_val, v);
+            }
+            m_val = v;
+        }
         std::string getTypeName() const override {return typeid(T).name();}
+
+        void addListener(uint64_t key, on_change_cb cb)
+        {
+            m_cbs[key] = cb;
+        }
+
+        void delListerner(uint64_t key)
+        {
+            m_cbs.erase(key);
+        }
+
+        on_change_cb getListener(uint64_t key)
+        {
+            auto it = m_cbs.find(key);
+            return it == m_cbs.end()? nullptr: it -> second;
+        }
+
+        void clearListener()
+        {
+            m_cbs.clear();
+        }
 
     private:
         T m_val;
+        // 变更回调函数数组，uint64_t key，可以使用hash值
+        std::map<u_int64_t, on_change_cb> m_cbs;
     };
 
     /****************************************************************************
@@ -352,8 +389,8 @@ namespace agent{
         template<typename T>
         static typename ConfigVar<T>::ptr Lookup(const std::string& name, const T& default_value, const std::string& description = "")
         {
-            auto it = m_data.find(name);
-            if(it != m_data.end())
+            auto it = GetDatas().find(name);
+            if(it != GetDatas().end())
             {
                 auto tmp = std::dynamic_pointer_cast<ConfigVar<T>>(it -> second);
                 if(tmp)
@@ -375,15 +412,15 @@ namespace agent{
                 throw std::invalid_argument(name);
             }
             typename ConfigVar<T>::ptr v(new ConfigVar<T>(name, default_value, description));
-            m_data[name] = v;
+            GetDatas()[name] = v;
             return v;
         }
 
         template<typename T>
         static typename ConfigVar<T>::ptr Lookup(const std::string& name)
         {
-            auto it = m_data.find(name);
-            if(it == m_data.end())
+            auto it = GetDatas().find(name);
+            if(it == GetDatas().end())
             {
                 return nullptr;
             }
@@ -395,6 +432,11 @@ namespace agent{
         static ConfigVarBase::ptr LookupBase(const std::string& name);
         
     private:
-        static ConfigVarMap m_data;
+        // static ConfigVarMap m_data;
+        static ConfigVarMap& GetDatas()
+        {
+            static ConfigVarMap s_datas;
+            return s_datas;
+        }
     };
 }

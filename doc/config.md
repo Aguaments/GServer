@@ -91,3 +91,22 @@ public:
 2. 思路
 - 最初思路：只能将基本类型的值进行字符串化，使用lexical_cast进行转换，有局限性，对于复杂类型无法适应
 - 当前思路：为了支持复杂类型的转化，通过使用模板来实现。例如针对vector类型的转换，进行偏特化声明，这样后期在实例化一个```std::vector<int>```类型的对象时，就可以实例化偏特化的模板，而不会使用原本的基础模板。
+
+
+3. 配置变更事件
+- 配置的事件机制：当某个配置项发生改变后，可以反向通知对应的代码，回调
+- 实现方式
+    1. 在配置项类中添加listener，通过map存储，并添加addListener、delListener、getListener、clearListener方法
+    2. map的second参数设置为function类型，参数列表为oldvalue和newvalue，用于对比。回调函数内部用来执行发生变更后的一些操作。
+
+4. 配置模板详情----日志模块
+```yaml
+logs:
+    - name: root
+      level: (debug/info/warn/error/fatal)
+      formatter: '%d%T%p%T%t%m%n'
+      appender:
+        - type: (SoutLogAppender/FileLogAppender)
+          level: (debug/info/warn/error/fatal)
+          file: ../log/log.txt
+```

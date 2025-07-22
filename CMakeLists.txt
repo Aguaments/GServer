@@ -19,6 +19,7 @@ add_library(config SHARED ${CONFIG_LIB_SRC})
 add_executable(test_log test/test_log.cpp)
 target_link_libraries(test_log
     log
+    yaml-cpp
     utils)
 
 add_executable(test_config test/test_config.cpp)

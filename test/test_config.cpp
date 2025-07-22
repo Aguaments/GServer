@@ -3,6 +3,7 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
+#if 0
 agent::ConfigVar<int>::ptr g_int_value_config = agent::Config::Lookup("system.port", (int)8080, "System port"); 
 agent::ConfigVar<float>::ptr g_int_value_x_config = agent::Config::Lookup("system.port", (float)8080, "System port"); 
 
@@ -99,23 +100,29 @@ void test_config()
     XX_M(g_int_map_value_config, int_map, after);
     XX_M(g_int_unordered_map_value_config, int_unordered_map, after);
 }
+#endif
 
 class Person
 {
 public:
     Person(){};
     std::string m_name;
-    int age = 0;
-    bool sex = 0;
+    int m_age = 0;
+    bool m_sex = 0;
 
     std::string toString() const
     {
         std::stringstream ss;
         ss << "[Person name = " << m_name
-        << " age = " << age
-        << " sex = " << sex
+        << " age = " << m_age
+        << " sex = " << m_sex
         << "]";
         return ss.str();
+    }
+
+    bool operator==(const Person& oth) const
+    {
+        return m_name == oth.m_name && m_age == oth.m_age && m_sex == oth.m_sex;
     }
 };
 
@@ -130,8 +137,8 @@ namespace agent{
             YAML::Node node = YAML::Load(v);
             Person p;
             p.m_name = node["name"].as<std::string>();
-            p.age = node["age"].as<int>();
-            p.sex = node["sex"].as<bool>();
+            p.m_age = node["age"].as<int>();
+            p.m_sex = node["sex"].as<bool>();
             return p;
         }
     };
@@ -144,8 +151,8 @@ namespace agent{
         {
             YAML::Node node; // 明确node是一个序列节点， 直接YAML::Node node;也可以，是隐式的
             node["name"] = v.m_name;
-            node["age"] = v.age;
-            node["sex"] = v.sex;
+            node["age"] = v.m_age;
+            node["sex"] = v.m_sex;
             std::stringstream ss;
             ss << node;
             return ss.str();
@@ -158,6 +165,9 @@ agent::ConfigVar<std::map<std::string, Person>>::ptr g_map_person = agent::Confi
 
 void test_class()
 {
+    g_person -> addListener(10, [](const Person& old_value, const Person& new_value){
+        AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "old_value=" << old_value.toString() << " new_value=" << new_value.toString();
+    });
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_person -> getValue().toString() << " - " << g_person -> toString();
 
     #define XX_PM(g_var, prefix)\
@@ -168,7 +178,9 @@ void test_class()
             AGENT_LOG_INFO(AGENT_LOG_ROOT()) << prefix << ": " << i.first << " - " << i.second.toString();\
         }\
     }
+    
     XX_PM(g_map_person, "class.map before");
+
     
     
     YAML::Node root = YAML::LoadFile("../config/log.yml");
@@ -178,9 +190,18 @@ void test_class()
     XX_PM(g_map_person, "class.map after");
 }
 
+void test_log()
+{
+    AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "hello system" << std::endl;
+    YAML::Node root = YAML::LoadFile("../config/log.yml");
+    agent::Config::LoadFromYaml(root);
+    // std::cout << root << std::endl;
+}
+
 int main()
 {
     // test_config();
-    test_class();
+    // test_class();
+    test_log();
     return 0;
 }

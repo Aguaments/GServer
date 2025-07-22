@@ -1,41 +1,16 @@
-log:
+logs:
   - name: root
-    type: info
-    formatter: '%d%T%n'
-    appender: 
-      - name: FileLogAppender
-        file: log.txt
-      - name: SoutLogAppender
+    level: INFO
+    formatter: "%d%T%n"
+    appenders: 
+      - type: FileLogAppender
+        file: ../log/root_log.txt
+      - type: SoutLogAppender
   - name: system
-    type: debug
-    formatter: '%d%T%n'
-    appender:
-    - name: SoutLogAppender
-system:
-  port: 9000
-  value: 11.3
-  vec:
-    - 7
-    - 4
-  list: [6, 0]
-  set: [9, 3]
-  unordered_set: [4, 7]
-  map:
-    k: 100
-  unordered_map:
-    k: 1000
-  
-class:
-  person:
-    name: ggy
-    age: 27
-    sex: true
-  map_person:
-    person01:
-      name: person01
-      age: 18
-      sex: false
-    person02:
-      name: person02
-      age: 30
-      sex: true
+    level: DEBUG
+    formatter: "%d%T%m%n"
+    appenders:
+      - type: FileLogAppender
+        file: ../log/system_log.txt
+        formatter: "%d%T[%p]%m%n"
+      - type: SoutLogAppender
