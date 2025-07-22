@@ -62,7 +62,6 @@ void test_config()
 {
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_int_value_config -> getValue();
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_float_value_config -> getValue();
-
     #define XX(target, name, prefix)\
     {\
         auto vec =  target -> getValue();\
@@ -128,7 +127,6 @@ namespace agent{
     public:
         Person operator()(const std::string& v)
         {
-            std::cout << v << std::endl;
             YAML::Node node = YAML::Load(v);
             Person p;
             p.m_name = node["name"].as<std::string>();
@@ -156,13 +154,28 @@ namespace agent{
 }
 
 agent::ConfigVar<Person>::ptr g_person = agent::Config::Lookup("class.person", Person(), "system person");
+agent::ConfigVar<std::map<std::string, Person>>::ptr g_map_person = agent::Config::Lookup("class.map_person", std::map<std::string, Person>(), "system map person");
 
 void test_class()
 {
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_person -> getValue().toString() << " - " << g_person -> toString();
+
+    #define XX_PM(g_var, prefix)\
+    {\
+        auto m = g_var -> getValue();\
+        for(auto& i : m)\
+        {\
+            AGENT_LOG_INFO(AGENT_LOG_ROOT()) << prefix << ": " << i.first << " - " << i.second.toString();\
+        }\
+    }
+    XX_PM(g_map_person, "class.map before");
+    
+    
     YAML::Node root = YAML::LoadFile("../config/log.yml");
+    // print_yaml(root, 0);
     agent::Config::LoadFromYaml(root);
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "after: " << g_person -> getValue().toString() << " - " << g_person -> toString();
+    XX_PM(g_map_person, "class.map after");
 }
 
 int main()

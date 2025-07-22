@@ -15,7 +15,7 @@ namespace agent{
     {
         // find_first_not_of函数：找到prefix中第一个不在字符集中的字符的位置（不在字符集中的字符在原字符串中的位置），如果都在字符集中则返回std::string::npos
         // 对于空字符串""也直接返回npos
-        if(prefix.find_first_not_of("abcdefghijklmnopqrstuvwxyz._123456789") != std::string::npos)
+        if(prefix.find_first_not_of("abcdefghijklmnopqrstuvwxyz._0123456789") != std::string::npos)
         {
             AGENT_LOG_ERROR(AGENT_LOG_ROOT()) << "Config invalid name: " << prefix << " : " << node;
             return;
