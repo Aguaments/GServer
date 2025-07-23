@@ -729,7 +729,7 @@ namespace agent{
                             std::cout << "Log config error: appender type is invalid, " << a << std::endl;
                             continue;
                         }
-                        lad.level = FromStringToLogLevel(a["level"].IsDefined()? a["level"].as<std::string>(): "");
+                        lad.level = FromStringToLogLevel(a["level"].as<std::string>());
                         ld.appenders.push_back(lad);
                     }
                 }

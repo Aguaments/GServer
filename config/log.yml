@@ -7,7 +7,7 @@ logs:
         level: DEBUG
         file: ../log/root_log.txt
       - type: SoutLogAppender
-        level: debug
+        level: INFO
   - name: system
     level: DEBUG
     formatter: "%d%T%m%n"
