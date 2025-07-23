@@ -1,16 +1,20 @@
 logs:
   - name: root
-    level: INFO
+    level: DEBUG
     formatter: "%d%T%n"
     appenders: 
       - type: FileLogAppender
+        level: DEBUG
         file: ../log/root_log.txt
       - type: SoutLogAppender
+        level: debug
   - name: system
     level: DEBUG
     formatter: "%d%T%m%n"
     appenders:
       - type: FileLogAppender
+        level: INFO
         file: ../log/system_log.txt
         formatter: "%d%T[%p]%m%n"
       - type: SoutLogAppender
+        level: INFO

@@ -192,10 +192,11 @@ void test_class()
 
 void test_log()
 {
-    AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "hello system" << std::endl;
+    std::cout << agent::LoggerMgr::getInstance() -> toYamlString() << std::endl;
     YAML::Node root = YAML::LoadFile("../config/log.yml");
     agent::Config::LoadFromYaml(root);
-    // std::cout << root << std::endl;
+    std::cout << "==========================" << std::endl;
+    std::cout << agent::LoggerMgr::getInstance() -> toYamlString() << std::endl;
 }
 
 int main()

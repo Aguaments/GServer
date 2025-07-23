@@ -4,6 +4,17 @@ Config ---->  yaml文件解析
 
 - 原则：约定大于配置
 
+## 系统设计
+- Config
+    - LookupBase(str):ConfigVarBase
+    - Lookup(prefix, obj, description): ConfigVar<T>::ptr
+    - LoadFromYaml：从模板中加载配置
+- ConfigVarBase
+- ConfigVar：public ConfigVarBase (通过模板偏特化方式进行转换，定义一个类型转换类，重载其()运算发，以仿函数的形式实现类型转换)
+    - toString
+    - fromString
+- 
+
 ## 必要组件
 - 安装boost库
 ```shell

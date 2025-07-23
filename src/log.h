@@ -144,7 +144,10 @@ namespace agent{
         };
         void init();
         
-        bool isError() const {return m_error;} // 
+        bool isError() const {return m_error;} 
+
+        const std::string getPattern() const {return m_pattern;}
+        
     private:
         std::string m_pattern;
         std::vector<FormatItem::ptr> m_items;
@@ -167,12 +170,13 @@ namespace agent{
 
         LogFormatter::ptr getFormatter() const {return m_formatter;}
         void setFormatter(LogFormatter::ptr formatter) {m_formatter = formatter;}
-
         const LogLevel getLevel() const {return m_level;}
         void setLevel(LogLevel ll) {m_level = ll;}
 
+        virtual std::string toYamlString() = 0;
+
     protected:
-        LogLevel m_level;
+        LogLevel m_level = LogLevel::DEBUG;
         bool m_hasFormatter = false;
         LogFormatter::ptr m_formatter;
     };
@@ -183,6 +187,7 @@ namespace agent{
     public: 
         typedef std::shared_ptr<SoutLogAppender> ptr;
         virtual void log(std::shared_ptr<Logger> Logger, LogLevel ll, LogEvent::ptr event) override;
+        virtual std::string toYamlString() override; 
     };
 
 
@@ -196,6 +201,8 @@ namespace agent{
         virtual void log(std::shared_ptr<Logger> logger, LogLevel ll, LogEvent::ptr event) override;
 
         bool reopen(); // 重新开启文件流，判断是否成功
+
+        virtual std::string toYamlString() override;   // 转为string
     
     private:
         std::string m_filename;
@@ -213,7 +220,7 @@ namespace agent{
         friend class LoggerManager;
     public:
         using ptr =  std::shared_ptr<Logger>;
-        Logger(const std::string& name = "basic");
+        Logger(const std::string& name = "root");
 
         void info(LogEvent::ptr event);
         void debug(LogEvent::ptr event);
@@ -230,11 +237,11 @@ namespace agent{
         LogFormatter::ptr getFormatter(){return m_formatter;};
         void setFormatter(LogFormatter::ptr val);
         void setFormatter(const std::string& val);
-        
-
         const std::string& getName() const {return m_name;}
 
         void log(LogLevel ll, LogEvent::ptr event); // basic log info 
+
+        std::string toYamlString();
 
     private:
         std::string m_name;
@@ -258,6 +265,8 @@ namespace agent{
 
         void init();
         Logger::ptr getRoot() const {return m_root;}
+
+        std::string toYamlString() const;
     private:
         std::unordered_map<std::string, Logger::ptr> m_logger_map;
         Logger::ptr m_root;
