@@ -12,8 +12,7 @@ Config ---->  yaml文件解析
 - ConfigVarBase
 - ConfigVar：public ConfigVarBase (通过模板偏特化方式进行转换，定义一个类型转换类，重载其()运算发，以仿函数的形式实现类型转换)
     - toString
-    - fromString
-- 
+    - fromString --> setValue(new_value) : oldValue(m_val--成员变量) --> 执行listener的callback
 
 ## 必要组件
 - 安装boost库

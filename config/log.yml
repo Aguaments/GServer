@@ -1,7 +1,7 @@
 logs:
   - name: root
     level: DEBUG
-    formatter: "%d%T%n"
+    formatter: "%d%T[%p]%T%m%n"
     appenders: 
       - type: FileLogAppender
         level: DEBUG
@@ -15,6 +15,7 @@ logs:
       - type: FileLogAppender
         level: INFO
         file: ../log/system_log.txt
-        formatter: "%d%T[%p]%m%n"
+        formatter: "%d%T[%p]%T%m%n"
       - type: SoutLogAppender
         level: INFO
+        formatter: "%d%T[%p]%T%m%n"

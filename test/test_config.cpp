@@ -192,13 +192,13 @@ void test_class()
 
 void test_log()
 {
-    static agent::Logger::ptr system_logger = AGENT_LOG_BY_NAME("root");
-    AGENT_LOG_INFO(system_logger) << "hello system" << std::endl;
-    std::cout << agent::LoggerMgr::getInstance() -> toYamlString() << std::endl;
+    static agent::Logger::ptr system_logger = AGENT_LOG_BY_NAME("system");
+    AGENT_LOG_INFO(system_logger) << "Load before: hello system";
+    std::cout << system_logger -> toYamlString() << std::endl;
     YAML::Node root = YAML::LoadFile("../config/log.yml");
     agent::Config::LoadFromYaml(root);
     std::cout << "==========================" << std::endl;
-    std::cout << agent::LoggerMgr::getInstance() -> toYamlString() << std::endl;
+    std::cout << system_logger -> toYamlString() << std::endl;
     AGENT_LOG_INFO(system_logger) << "hello system" << std::endl;
 }
 
