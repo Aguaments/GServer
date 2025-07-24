@@ -10,12 +10,9 @@ logs:
         level: INFO
   - name: system
     level: DEBUG
-    formatter: "%d%T%m%n"
     appenders:
       - type: FileLogAppender
         level: INFO
         file: ../log/system_log.txt
-        formatter: "%d%T[%p]%T%m%n"
       - type: SoutLogAppender
         level: INFO
-        formatter: "%d%T[%p]%T%m%n"

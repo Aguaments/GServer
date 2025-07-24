@@ -26,6 +26,15 @@ logger ---->  appender.1 ----> Formatter
               appender.3 ----> Formatter
 
 Logger ----> LogEventWrapper（控制LogEvent的生命周期，在析构中做日志打印操作）----> LogEvent 
+### UML
+![log](UML_Log.png)
+
+1. Logger
+    - addAppender：在将appender对象添加到logger之前，先检查appender是否有formatter，没有的话就把logger的formatter赋值给appender
+    - log：打印日志，如果当前的logger没有appender，就使用其对应的m_root logger进行打印（root logger默认有两个appender，一个file 一个sout，file默认输出位置为log/root_log.txt）
+2. LogAppender
+    - setFormatter：将传入参数给formatter设置
+3. Formatter
 
 # 日志开发中编程注意事项
 ## ofstream文件流

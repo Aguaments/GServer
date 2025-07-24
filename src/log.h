@@ -162,14 +162,15 @@ namespace agent{
       * Author        : [Guanyue Gao]
      *******************************************************************************/
     class LogAppender{
+        friend class Logger;
     public:
         using ptr = std::shared_ptr<LogAppender>;
         virtual ~LogAppender(){};
 
         virtual void log(std::shared_ptr<Logger> logger, LogLevel ll, LogEvent::ptr event) = 0;
 
-        LogFormatter::ptr getFormatter() const {return m_formatter;}
-        void setFormatter(LogFormatter::ptr formatter) {m_formatter = formatter;}
+        LogFormatter::ptr getFormatter() const {return m_formatter;};
+        void setFormatter(LogFormatter::ptr formatter);
         const LogLevel getLevel() const {return m_level;}
         void setLevel(LogLevel ll) {m_level = ll;}
 
@@ -177,7 +178,7 @@ namespace agent{
 
     protected:
         LogLevel m_level = LogLevel::DEBUG;
-        bool m_hasFormatter = false;
+        bool m_hasFormatter = false; // 判断当前appender是否有formatter
         LogFormatter::ptr m_formatter;
     };
 
@@ -196,12 +197,10 @@ namespace agent{
     public:
         using ptr =  std::shared_ptr<FileLogAppender>;
         FileLogAppender(const std::string filename);
-        ~FileLogAppender(){m_filestream.close();}
 
         virtual void log(std::shared_ptr<Logger> logger, LogLevel ll, LogEvent::ptr event) override;
 
         bool reopen(); // 重新开启文件流，判断是否成功
-
         virtual std::string toYamlString() override;   // 转为string
     
     private:

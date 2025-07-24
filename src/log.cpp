@@ -10,7 +10,7 @@
 #include "log.h"
 #include "config.h"
 
-// #define PARSE_TEST
+// #define TEST_CONTENT
 namespace agent{
     const char* LogLevelToString(const LogLevel& ll)
     {
@@ -307,7 +307,7 @@ namespace agent{
             if(!nstr.empty())
             {
                 vec.push_back(std::make_tuple(nstr, "", 2));
-                #ifdef PARSE_TEST
+                #ifdef TEST_CONTENT
                 std::cout << nstr << " | " << "null" << " | " << 2 << std::endl;
                 #endif
                 nstr.clear();
@@ -349,14 +349,14 @@ namespace agent{
                 if(!fmt.empty())
                 {
                     vec.push_back(std::make_tuple(symbol, fmt, 1));
-                    #ifdef PARSE_TEST
+                    #ifdef TEST_CONTENT
                     std::cout << symbol << " | " << fmt << " | " << 1 << std::endl;
                     #endif
                 }
                 else
                 {
                     vec.push_back(std::make_tuple(symbol, "", 0));
-                    #ifdef PARSE_TEST
+                    #ifdef TEST_CONTENT
                     std::cout << symbol << " | " << fmt << " | " << 0 << std::endl;
                     #endif
                 }
@@ -404,6 +404,22 @@ namespace agent{
             }
         }
     }
+
+    /**************************************************************/
+    /* Class: LogAppender */
+    /**************************************************************/
+    void LogAppender::setFormatter(LogFormatter::ptr formatter)
+    {
+        m_formatter = formatter;
+        if(m_formatter)
+        {
+            m_hasFormatter = true;
+        }
+        else
+        {
+            m_hasFormatter = false;
+        }
+    }
         
     /**************************************************************/
     /* Class: SoutLogAppender */
@@ -420,9 +436,11 @@ namespace agent{
     {
         YAML::Node node;
         node["type"] = "SoutLogAppender";
-        node["level"] = LogLevelToString(m_level);
-        //std::cout << "============ SoutLogAppender log level ===================="<< LogLevelToString(m_level)<< std::endl;
-        if(m_formatter)
+        if(m_level != LogLevel::UNKONWN)
+        {
+            node["level"] = LogLevelToString(m_level);
+        }
+        if(m_hasFormatter && m_formatter)
         {
             node["formatter"] = m_formatter -> getPattern();
         }
@@ -465,8 +483,12 @@ namespace agent{
         YAML::Node node;
         node["type"] = "FileLogAppender";
         node["file"] = m_filename;
-        node["level"] = LogLevelToString(m_level);
-        if(m_formatter)
+        if(m_level != LogLevel::UNKONWN)
+        {
+            node["level"] = LogLevelToString(m_level);
+        }
+        // m_hasFormatter在setFormatter处更新
+        if(m_hasFormatter && m_formatter)
         {
             node["formatter"] = m_formatter -> getPattern();
         }
@@ -484,7 +506,7 @@ namespace agent{
     {
         m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%t%T%C%T%[%p]%T(%f:%l)%T%m%n"));
 
-        // if(name == "root")
+        // if(m_name == "root")
         // {
         //     m_appenders.push_back(SoutLogAppender::ptr(new SoutLogAppender));
         // }
@@ -494,7 +516,11 @@ namespace agent{
     {
         if(!appender -> getFormatter())
         {
-            appender -> setFormatter(m_formatter);
+            
+            appender ->setFormatter(LogFormatter::ptr(new LogFormatter(m_formatter -> getPattern()))); // 如果appender本身没有formatter，那就将logger的formatter设置给appender
+            #ifdef TEST_CONTENT
+            std::cout << "==================" << appender ->toYamlString() << std::endl;
+            #endif
         }
         m_appenders.push_back(appender);
     }
@@ -518,13 +544,21 @@ namespace agent{
     void Logger::setFormatter(LogFormatter::ptr val)
     {
         m_formatter = val;
+
+        for(auto& i: m_appenders)
+        {
+            if(!i -> m_hasFormatter)
+            {
+                i -> m_formatter = this -> m_formatter;
+            }
+        }
     }
 
     void Logger::setFormatter(const std::string& val)
     {
         LogFormatter::ptr new_val(new LogFormatter(val));
         if(new_val -> isError()) return;
-        m_formatter = new_val;
+        setFormatter(new_val);
     }
 
     // 通用日志打印方法
@@ -570,7 +604,6 @@ namespace agent{
         YAML::Node node;
         node["name"] = m_name;
         node["level"] = LogLevelToString(m_level);
-        //std::cout << "============ logger log level ===================="<< LogLevelToString(m_level)<< std::endl;
         if(m_formatter)
         {
             node["formatter"] = m_formatter -> getPattern();
@@ -592,7 +625,7 @@ namespace agent{
     {
         m_root.reset(new Logger());
         m_root -> addAppender(LogAppender::ptr(new SoutLogAppender()));
-        m_root -> addAppender(LogAppender::ptr(new FileLogAppender("../log/log.txt")));
+        m_root -> addAppender(LogAppender::ptr(new FileLogAppender("../log/root_log.txt")));
 
         m_logger_map[m_root -> m_name] = m_root;
         init();
@@ -715,11 +748,6 @@ namespace agent{
                                 continue;
                             }
                             lad.file = a["file"].as<std::string>();
-                            if(a["formatter"].IsDefined())
-                            {
-                                lad.formatter = a["formatter"].as<std::string>();
-                                //std::cout << "======= formatter: " << a["formatter"].as<std::string>() << std::endl;
-                            }
                         }
                         else if(type == "SoutLogAppender")
                         {
@@ -730,7 +758,15 @@ namespace agent{
                             std::cout << "Log config error: appender type is invalid, " << a << std::endl;
                             continue;
                         }
-                        lad.level = FromStringToLogLevel(a["level"].as<std::string>());
+                        if(a["level"].as<std::string>() != "UNKNOW")
+                        {
+                            lad.level = FromStringToLogLevel(a["level"].as<std::string>());
+                        }
+                        if(a["formatter"].IsDefined())
+                        {
+                            lad.formatter = a["formatter"].as<std::string>();
+                            //std::cout << "======= formatter: " << a["formatter"].as<std::string>() << std::endl;
+                        }
                         ld.appenders.push_back(lad);
                     }
                 }
@@ -833,7 +869,19 @@ namespace agent{
                         ap -> setLevel(a.level);
                         if(!a.formatter.empty())
                         {
-                            ap -> setFormatter(LogFormatter::ptr(new LogFormatter(a.formatter)));
+                            LogFormatter::ptr fmt(new LogFormatter(a.formatter));
+                            if(!fmt -> isError())
+                            {
+                                ap -> setFormatter(fmt);
+                            }
+                            else
+                            {
+                                std::cout << "Formatter error." << std::endl;
+                            }
+                        }
+                        else
+                        {
+                            ap -> setFormatter(logger -> getFormatter());
                         }
                         logger -> addAppender(ap);
                     }
