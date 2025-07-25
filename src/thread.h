@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <atomic>
 
 #include <sys/types.h> 
 #include <pthread.h>
@@ -250,6 +251,32 @@ namespace agent{
 
     private:
         pthread_spinlock_t m_spinlock;
+    };
+
+    class CASLock
+    {
+    public:
+        using Lock = ScopedLockImpl<CASLock>;
+
+        CASLock()
+        {
+            m_mutex.clear();
+        }
+        ~CASLock()
+        {
+
+        }
+        void lock()
+        {
+            while(std::atomic_flag_test_and_set_explicit(&m_mutex, std::memory_order_acquire));
+        }
+
+        void unlock()
+        {
+            std::atomic_flag_clear_explicit(&m_mutex, std::memory_order_acquire);
+        }
+    private:
+        std::atomic_flag m_mutex;
     };
 
     class Thread

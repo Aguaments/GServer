@@ -17,3 +17,6 @@ logs:
         file: ../log/system_log.txt
       - type: SoutLogAppender
         level: INFO
+class:
+  name: ggy
+  age: 10

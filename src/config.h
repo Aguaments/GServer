@@ -13,7 +13,11 @@
 
 #include <boost/lexical_cast.hpp>
 #include <yaml-cpp/yaml.h>
+
 #include "log.h"
+#include "thread.h"
+
+typedef agent::RWMutex ConfigMutexType; 
 
 namespace agent{
     class ConfigVarBase
@@ -302,6 +306,7 @@ namespace agent{
         {
             try
             {
+                ConfigMutexType::ReadLock lock(m_mutex);
                 // return boost::lexical_cast<std::string>(m_val);
                 return ToStr()(m_val);
             }
@@ -317,9 +322,11 @@ namespace agent{
         {
             try
             {
+                ConfigMutexType::WriteLock lock(m_mutex);
                 // m_val = boost::lexical_cast<T>(val);
                 // return true;
                 setValue(FromStr()(val));
+                return true;
             }
             catch(std::exception& e)
             {
@@ -329,34 +336,48 @@ namespace agent{
             return false;
         }
 
-        const T getValue() const {return m_val;}
+        const T getValue() const // 锁在函数内部是会变化的因此，需要将m_mutex设置为mutable
+        {
+            ConfigMutexType::ReadLock lock(m_mutex);
+            return m_val;
+        }
         void setValue(const T& v) 
-        {   
-            if(v == m_val)
+        {
             {
-                return;
-            }
-            
-            for(auto& i : m_cbs)
-            {
-                i.second(m_val, v);
-            }
+                ConfigMutexType::ReadLock lock(m_mutex);
+                if(v == m_val)
+                {
+                    return;
+                }
+                
+                for(auto& i : m_cbs)
+                {
+                    i.second(m_val, v);
+                }
+            }   
+            ConfigMutexType::WriteLock lock(m_mutex);
             m_val = v;
         }
         std::string getTypeName() const override {return typeid(T).name();}
 
-        void addListener(uint64_t key, on_change_cb cb)
+        uint64_t addListener(uint64_t key, on_change_cb cb)
         {
-            m_cbs[key] = cb;
+            static uint64_t s_fun_id = 0;
+            ConfigMutexType::WriteLock lock(m_mutex);
+            ++s_fun_id;
+            m_cbs[s_fun_id] = cb;
+            return s_fun_id;
         }
 
         void delListerner(uint64_t key)
         {
+            ConfigMutexType::WriteLock lock(m_mutex);
             m_cbs.erase(key);
         }
 
         on_change_cb getListener(uint64_t key)
         {
+            ConfigMutexType::ReadLock lock(m_mutex);
             auto it = m_cbs.find(key);
             return it == m_cbs.end()? nullptr: it -> second;
         }
@@ -370,6 +391,8 @@ namespace agent{
         T m_val;
         // 变更回调函数数组，uint64_t key，可以使用hash值
         std::map<u_int64_t, on_change_cb> m_cbs;
+
+        mutable ConfigMutexType m_mutex;
     };
 
     /****************************************************************************
@@ -389,6 +412,7 @@ namespace agent{
         template<typename T>
         static typename ConfigVar<T>::ptr Lookup(const std::string& name, const T& default_value, const std::string& description = "")
         {
+            ConfigMutexType::WriteLock lock(GetMutex());
             auto it = GetDatas().find(name);
             if(it != GetDatas().end())
             {
@@ -419,6 +443,7 @@ namespace agent{
         template<typename T>
         static typename ConfigVar<T>::ptr Lookup(const std::string& name)
         {
+            ConfigMutexType::ReadLock lock(GetMutex());
             auto it = GetDatas().find(name);
             if(it == GetDatas().end())
             {
@@ -430,6 +455,8 @@ namespace agent{
         
         static void LoadFromYaml(const YAML::Node& root);
         static ConfigVarBase::ptr LookupBase(const std::string& name);
+
+        static void Visit(std::function<void(ConfigVarBase::ptr&)> cb);
         
     private:
         // static ConfigVarMap m_data;
@@ -437,6 +464,12 @@ namespace agent{
         {
             static ConfigVarMap s_datas;
             return s_datas;
+        }
+
+        static ConfigMutexType& GetMutex()
+        {
+            static ConfigMutexType s_mutex;
+            return s_mutex;
         }
     };
 }

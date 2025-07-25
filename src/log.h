@@ -15,7 +15,7 @@
 #include "singleton.h"
 #include "thread.h"
 
-typedef agent::Mutex MutexType;
+typedef agent::Spinlock LogMutexType;
 
 // 普通的字符串输出
 #define AGENT_LOG_LEVEL(logger, level)\
@@ -182,7 +182,7 @@ namespace agent{
         bool m_hasFormatter = false; // 判断当前appender是否有formatter
         LogFormatter::ptr m_formatter;
 
-        MutexType m_mutex;
+        LogMutexType m_mutex;
     };
 
     // 定制化appender
@@ -252,7 +252,7 @@ namespace agent{
         LogFormatter::ptr m_formatter;              // default formater
         Logger::ptr m_root;
 
-        MutexType m_mutex;
+        LogMutexType m_mutex;
     };
 
     /*******************************************************************************
@@ -274,7 +274,7 @@ namespace agent{
     private:
         std::unordered_map<std::string, Logger::ptr> m_logger_map;
         Logger::ptr m_root;
-        MutexType m_mutex;
+        LogMutexType m_mutex;
     };
 
     using LoggerMgr = agent::Singleton<LoggerManager>;
