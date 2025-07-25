@@ -40,5 +40,8 @@ set(LIB_LIB
 add_executable(test_thread test/test_thread.cpp)
 target_link_libraries(test_thread ${LIB_LIB})
 
+add_executable(test_config test/test_config.cpp)
+target_link_libraries(test_config ${LIB_LIB})
+
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

@@ -28,7 +28,7 @@ namespace agent{
         }
     }
     
-    void Semaphore::post()
+    void Semaphore::notify()
     {
         if(sem_post(&m_semaphore))
         {
@@ -57,7 +57,6 @@ namespace agent{
     Thread::Thread(std::function<void()> cb, const std::string& name)
     :m_cb(cb)
     ,m_name(name)
-    ,m_semaphore(1)
     {
         if(m_name.empty())
         {
@@ -73,7 +72,7 @@ namespace agent{
             AGENT_LOG_ERROR(g_logger) << "pthread_create thread fail, rt=" << rt << " name=" << name;
             throw std::logic_error("pthread_create error");
         }
-        m_semaphore.wait();
+        m_semaphore.wait(); // 如果pthread_create中的run函数没有执行完毕，会阻塞主线程，如果在run中的函数中没有执行完，该线程的创建就会变成串行执行。
     }
 
     Thread::~Thread()
@@ -95,8 +94,8 @@ namespace agent{
 
         std::function<void()> cb;
         cb.swap(thread ->m_cb);
+        thread -> m_semaphore.notify();
         cb();
-        thread -> m_semaphore.post();
         return 0;
     }
 

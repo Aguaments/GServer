@@ -10,6 +10,7 @@ logs:
         level: INFO
   - name: system
     level: DEBUG
+    formatter: "%d%T[%p]%T%m%n"
     appenders:
       - type: FileLogAppender
         level: INFO

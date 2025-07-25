@@ -13,8 +13,9 @@
 
 #include "utils.h"
 #include "singleton.h"
+#include "thread.h"
 
-
+typedef agent::Mutex MutexType;
 
 // 普通的字符串输出
 #define AGENT_LOG_LEVEL(logger, level)\
@@ -169,7 +170,7 @@ namespace agent{
 
         virtual void log(std::shared_ptr<Logger> logger, LogLevel ll, LogEvent::ptr event) = 0;
 
-        LogFormatter::ptr getFormatter() const {return m_formatter;};
+        LogFormatter::ptr getFormatter();
         void setFormatter(LogFormatter::ptr formatter);
         const LogLevel getLevel() const {return m_level;}
         void setLevel(LogLevel ll) {m_level = ll;}
@@ -180,6 +181,8 @@ namespace agent{
         LogLevel m_level = LogLevel::DEBUG;
         bool m_hasFormatter = false; // 判断当前appender是否有formatter
         LogFormatter::ptr m_formatter;
+
+        MutexType m_mutex;
     };
 
     // 定制化appender
@@ -233,7 +236,7 @@ namespace agent{
 
         LogLevel getLevel() const {return m_level;};
         void setLevel(const LogLevel level){m_level = level;};
-        LogFormatter::ptr getFormatter(){return m_formatter;};
+        LogFormatter::ptr getFormatter();
         void setFormatter(LogFormatter::ptr val);
         void setFormatter(const std::string& val);
         const std::string& getName() const {return m_name;}
@@ -248,6 +251,8 @@ namespace agent{
         std::list<LogAppender::ptr> m_appenders;    // appender list
         LogFormatter::ptr m_formatter;              // default formater
         Logger::ptr m_root;
+
+        MutexType m_mutex;
     };
 
     /*******************************************************************************
@@ -265,10 +270,11 @@ namespace agent{
         void init();
         Logger::ptr getRoot() const {return m_root;}
 
-        std::string toYamlString() const;
+        std::string toYamlString();
     private:
         std::unordered_map<std::string, Logger::ptr> m_logger_map;
         Logger::ptr m_root;
+        MutexType m_mutex;
     };
 
     using LoggerMgr = agent::Singleton<LoggerManager>;

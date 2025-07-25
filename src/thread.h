@@ -20,7 +20,7 @@ namespace agent{
         ~Semaphore();
 
         void wait();
-        void post();
+        void notify();
     private:
         Semaphore(const Semaphore&) = delete;
         Semaphore(const Semaphore&&) = delete;
@@ -64,7 +64,7 @@ namespace agent{
         }
     private:
         T& m_mutex;
-        bool m_locked;
+        bool m_locked = false;
     };
 
     template<class T>
@@ -173,6 +173,83 @@ namespace agent{
         }
     private:
         pthread_rwlock_t m_lock;
+    };
+
+    class NullRWMutex
+    {
+    public:
+        using ReadLock = ReadScopedLockImpl<RWMutex>;
+        using WriteLock = WriteScopedLockImpl<RWMutex>;
+
+        NullRWMutex(){}
+        ~NullRWMutex(){}
+        void lock(){}
+        void unlock(){}
+    };
+
+    class Mutex
+    {
+    public:
+        using Lock = ScopedLockImpl<Mutex>;
+
+        Mutex()
+        {
+            pthread_mutex_init(&m_mutex,nullptr);
+        }
+        ~Mutex()
+        {
+            pthread_mutex_destroy(&m_mutex);
+        }
+
+        void lock()
+        {
+            pthread_mutex_lock(&m_mutex);
+        }
+        void unlock()
+        {
+            pthread_mutex_unlock(&m_mutex);
+        }
+    private:
+        pthread_mutex_t m_mutex;
+    };
+
+    class NullMutex
+    {
+    public:
+        using Lock = ScopedLockImpl<NullMutex>;
+        NullMutex(){}
+        ~NullMutex(){}
+        void lock(){}
+        void unlock(){}
+    };
+
+    class Spinlock
+    {
+    public:
+        using Lock = ScopedLockImpl<Spinlock>;
+
+        Spinlock()
+        {
+            pthread_spin_init(&m_spinlock, 0);
+        }
+
+        ~Spinlock()
+        {
+            pthread_spin_destroy(&m_spinlock);
+        }
+
+        void lock()
+        {
+            pthread_spin_lock(&m_spinlock);
+        }
+
+        void unlock()
+        {
+            pthread_spin_unlock(&m_spinlock);
+        }
+
+    private:
+        pthread_spinlock_t m_spinlock;
     };
 
     class Thread

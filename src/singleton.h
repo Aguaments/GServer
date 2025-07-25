@@ -18,9 +18,9 @@ namespace agent{
     class SingletonPtr
     {
     public:
-        static std::unique_ptr<T> getInstance()
+        static std::shared_ptr<T> getInstance()
         {
-            static std::unique_ptr<T> instancePtr(new T);
+            static std::shared_ptr<T> instancePtr(new T);
             return instancePtr;
         }
     private:
