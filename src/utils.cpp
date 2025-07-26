@@ -1,6 +1,11 @@
-#include "utils.h"
 #include <unistd.h>
+#include <execinfo.h>
 #include <sys/syscall.h>
+
+#include "utils.h"
+#include "log.h"
+
+agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
 
 namespace agent{
     pid_t Utils::getThreadId()
@@ -12,4 +17,41 @@ namespace agent{
     {
         return 0;
     }
+
+    void Utils::Backtrace(std::vector<std::string>& bt, int size, int skip)
+    {
+        void** array = (void**)malloc(sizeof(void*) * static_cast<size_t>(size));
+        size_t s = ::backtrace(array, size);
+
+        char** strings = backtrace_symbols(array, s);
+        if(strings == NULL)
+        {
+            AGENT_LOG_ERROR(g_logger) << "backtrace_symbols error";
+            return;
+        }
+
+        for(size_t i = skip; i < s; ++ i)
+        {
+            bt.push_back(strings[i]);
+        }
+
+        free(strings);
+        free(array);
+    }
+
+    std::string Utils::BacktraceToString(int size, int skip, const std::string& prefix)
+    {
+        std::vector<std::string> bt;
+        Backtrace(bt, size, skip);
+
+        std::stringstream ss;
+
+        for(size_t i = 0; i < bt.size(); ++ i)
+        {
+            ss << prefix << bt[i] << std::endl;
+        }
+
+        return ss.str();
+    }
+
 }

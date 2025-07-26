@@ -40,6 +40,12 @@ namespace agent{
         std::list<std::pair<std::string, const YAML::Node>> all_nodes;
         ListAllMember("", root, all_nodes);
 
+        // for(auto i = all_nodes.begin(); i != all_nodes.end(); ++ i)
+        // {
+        //     std::cout << "===== name: " << i -> first
+        //               << " content: " << i -> second << " =====" << std::endl;
+        // }
+
         for(auto& i : all_nodes)
         {
             std::string key = i.first; 

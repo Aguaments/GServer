@@ -1,7 +1,7 @@
 # 线程库
 
 ## 目标
-封装Thread 、 Mutex
+封装Thread 、 Mutex、Semaphore
 
 ## 基础
 

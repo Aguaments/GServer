@@ -55,11 +55,15 @@ int main()
 
     // AGENT_LOG_INFO(g_logger) << "count=" << count; 
 
+    std::cout << g_logger-> toYamlString() << std::endl;
     YAML::Node root = YAML::LoadFile("../config/log.yml");
     agent::Config::LoadFromYaml(root);
+    
+    std::cout << g_logger -> toYamlString() << std::endl;
+    std::cout << "==========================" << std::endl;
 
     agent::Config::Visit([](agent::ConfigVarBase::ptr& var){
-        AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "name=" << var -> getName()
+        AGENT_LOG_INFO(g_logger) << "name=" << var -> getName()
                     << " description=" << var -> getDescription()
                     << " typename=" << var -> getTypeName()
                     << " value=" << var -> toString();

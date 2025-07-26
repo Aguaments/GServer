@@ -350,7 +350,7 @@ namespace agent{
                     return;
                 }
                 
-                for(auto& i : m_cbs)
+                for(auto& i : m_cbs) // 触发变更的回调函数
                 {
                     i.second(m_val, v);
                 }

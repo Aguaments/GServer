@@ -1,7 +1,6 @@
 logs:
   - name: root
     level: DEBUG
-    formatter: "%d%T[%p]%T%m%n"
     appenders: 
       - type: FileLogAppender
         level: DEBUG
@@ -10,13 +9,10 @@ logs:
         level: INFO
   - name: system
     level: DEBUG
-    formatter: "%d%T[%p]%T%m%n"
+    formatter: "%d{%Y-%m-%d %H:%M:%S}%T%t%T%C%T%[%p]%T(%f:%l)%T%m%n"
     appenders:
       - type: FileLogAppender
         level: INFO
         file: ../log/system_log.txt
       - type: SoutLogAppender
         level: INFO
-class:
-  name: ggy
-  age: 10
