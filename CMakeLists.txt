@@ -28,7 +28,9 @@ set(AGENT_LIB_SRC
     src/utils.cpp
     src/log.cpp
     src/config.cpp
-    src/thread.cpp)
+    src/thread.cpp
+    src/coroutine.cpp
+    src/scheduler.cpp)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})
 
@@ -37,14 +39,17 @@ set(LIB_LIB
     pthread
     yaml-cpp)
 
-add_executable(test_thread test/test_thread.cpp)
-target_link_libraries(test_thread ${LIB_LIB})
+# add_executable(test_thread test/test_thread.cpp)
+# target_link_libraries(test_thread ${LIB_LIB})
 
-add_executable(test_config test/test_config.cpp)
-target_link_libraries(test_config ${LIB_LIB})
+# add_executable(test_config test/test_config.cpp)
+# target_link_libraries(test_config ${LIB_LIB})
 
-add_executable(test_util test/test_util.cpp)
-target_link_libraries(test_util ${LIB_LIB})
+# add_executable(test_util test/test_util.cpp)
+# target_link_libraries(test_util ${LIB_LIB})
+
+add_executable(test_coroutine test/test_coroutine.cpp)
+target_link_libraries(test_coroutine ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

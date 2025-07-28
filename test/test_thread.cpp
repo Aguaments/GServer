@@ -55,10 +55,12 @@ int main()
 
     // AGENT_LOG_INFO(g_logger) << "count=" << count; 
 
+    
     std::cout << g_logger-> toYamlString() << std::endl;
     YAML::Node root = YAML::LoadFile("../config/log.yml");
     agent::Config::LoadFromYaml(root);
     
+    AGENT_LOG_FMT_INFO(g_logger, "----%s---- num: %d\n", "hello", 100);
     std::cout << g_logger -> toYamlString() << std::endl;
     std::cout << "==========================" << std::endl;
 

@@ -5,6 +5,8 @@
 2.制定宏，用于调试
 
 ## 设计
+1. 协程的封装
+协程模型：主协程可以开启多个子协程，非对称
 ```
 Thread -> main_coroutine <------------> sub_coroutine : 主协程可以开启多个子协程，非对称
                 ^
@@ -13,6 +15,11 @@ Thread -> main_coroutine <------------> sub_coroutine : 主协程可以开启多
                 v
           sub_coroutine
 ```
+2. 协程调度scheduler
+多个线程消费一个协程池
+scheduler 1 -- N Thread 1 -- N Coroutine
+- 线程池 : 包含协程队列（可以是function<void()>， 也可以是coroutine）
+- 协程调度器：将协程指定到响应的线程上执行
 
 ## 基础
 

@@ -9,7 +9,7 @@ logs:
         level: INFO
   - name: system
     level: DEBUG
-    formatter: "%d{%Y-%m-%d %H:%M:%S}%T%t%T%C%T%[%p]%T(%f:%l)%T%m%n"
+    formatter: "%d{%Y-%m-%d %H:%M:%S}%T%N:%t%T%C%T%[%p]%T(%f:%l)%T%m%n"
     appenders:
       - type: FileLogAppender
         level: INFO

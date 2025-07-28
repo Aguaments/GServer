@@ -21,7 +21,7 @@ typedef agent::Spinlock LogMutexType;
 #define AGENT_LOG_LEVEL(logger, level)\
     if(logger -> getLevel() <= level)\
         agent::LogEventWrapper(agent::LogEvent::ptr(new agent::LogEvent(logger, level, __FILE__, __LINE__, 0, agent::Utils::getThreadId(),\
-        agent::Utils::getCoroutineId(), time(0)))).getSS()
+        agent::Utils::getCoroutineId(), time(0), agent::Thread::GetName()))).getSS()
 
 #define AGENT_LOG_DEBUG(logger) AGENT_LOG_LEVEL(logger, agent::LogLevel::DEBUG)
 #define AGENT_LOG_INFO(logger) AGENT_LOG_LEVEL(logger, agent::LogLevel::INFO)
@@ -34,7 +34,7 @@ typedef agent::Spinlock LogMutexType;
 #define AGENT_LOG_FMT_LEVEL(logger, level, fmt, ...)\
     if(logger -> getLevel() <= level)\
         agent::LogEventWrapper(agent::LogEvent::ptr(new agent::LogEvent(logger, level, __FILE__, __LINE__, 0, agent::Utils::getThreadId(),\
-        agent::Utils::getCoroutineId(), time(0)))).getEvent() -> format(fmt, __VA_ARGS__)
+        agent::Utils::getCoroutineId(), time(0), agent::Thread::GetName()))).getEvent() -> format(fmt, __VA_ARGS__)
 
 #define AGENT_LOG_FMT_DEBUG(logger, fmt, ...) AGENT_LOG_FMT_LEVEL(logger, agent::LogLevel::DEBUG, fmt,  __VA_ARGS__)
 #define AGENT_LOG_FMT_INFO(logger, fmt, ...) AGENT_LOG_FMT_LEVEL(logger, agent::LogLevel::INFO, fmt,  __VA_ARGS__)
@@ -75,12 +75,13 @@ namespace agent{
         LogEvent(std::shared_ptr<Logger> logger, LogLevel level
             ,const char* file, int32_t line, uint32_t elapse
             ,uint32_t thread_id, uint32_t coroutine_id, uint64_t time
-            );
+            ,const std::string& thread_name);
 
         std::shared_ptr<Logger> getLogger() const {return m_logger;}
         const char* getFile() const {return m_filename;}
         int32_t getline() const {return m_line;}
         uint32_t getThreadId() const {return m_threadId;}
+        const std::string getThreadName() const {return m_threadName;}
         uint32_t getCoroutineId() const {return m_coroutineId;}
         uint64_t getTime() const {return m_time;}
         uint32_t getElapse() const {return m_elapse;}
@@ -89,8 +90,16 @@ namespace agent{
 
         std::stringstream& getSS() {return m_ss;}
 
-        void format(const char* fmt, ...);
-        void format(const char* fmt, va_list al);
+        template<typename... Args>
+        void format(const char* fmt, Args&&... args)
+        {
+            int size = snprintf(nullptr, 0, fmt, std::forward<Args>(args)...);
+            if(size <= 0) m_ss << "";
+
+            std::unique_ptr<char[]> buf(new char[size + 1]);
+            snprintf(buf.get(), size + 1, fmt, std::forward<Args>(args)...);
+            m_ss << buf.get();
+        }
 
         
     private:
@@ -103,6 +112,8 @@ namespace agent{
         uint64_t m_time = 0;                // 时间戳
         uint32_t m_elapse = 0;              // 程序启动到当前消耗的毫秒数
         std::stringstream m_ss;             // 内容 
+
+        std::string m_threadName;           // 线程名
     };
 
     /*******************************************************************************

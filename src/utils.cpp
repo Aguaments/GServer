@@ -4,6 +4,7 @@
 
 #include "utils.h"
 #include "log.h"
+#include "coroutine.h"
 
 agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
 
@@ -15,7 +16,7 @@ namespace agent{
     }
     int32_t Utils::getCoroutineId()
     {
-        return 0;
+        return Coroutine::GetCoroutineId();
     }
 
     void Utils::Backtrace(std::vector<std::string>& bt, int size, int skip)

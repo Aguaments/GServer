@@ -19,7 +19,8 @@ namespace agent{
             HOLD,
             EXEC,
             TERM,
-            READY
+            READY,
+            EXCEPT
         };
         
     private:
@@ -37,6 +38,10 @@ namespace agent{
         // 切换到后台执行
         void swapOut();
 
+        uint64_t getId() const {return m_id;}
+        const State getState() const {return m_state;}
+        void setState(State state) {m_state = state;}
+
     public:
         // 设置当前协程
         static void SetThis(Coroutine* cor);
@@ -50,6 +55,8 @@ namespace agent{
         static uint64_t TotalCoroutine();
 
         static void MainFunc();
+
+        static uint64_t GetCoroutineId();
     
     private:
         uint64_t m_id = 0; // 协程id

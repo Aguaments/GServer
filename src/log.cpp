@@ -5,7 +5,7 @@
 #include <functional>
 #include <string.h>
 
-#include <stdarg.h>
+#include <cstdio>
 
 #include "log.h"
 #include "config.h"
@@ -61,7 +61,7 @@ namespace agent{
     LogEvent::LogEvent(std::shared_ptr<Logger> logger, LogLevel level
             ,const char* file, int32_t line, uint32_t elapse
             ,uint32_t thread_id, uint32_t coroutine_id, uint64_t time
-            )
+            ,const std::string& thread_name)
             :m_logger(logger)
             ,m_filename(file)
             ,m_level(level)
@@ -70,26 +70,8 @@ namespace agent{
             ,m_coroutineId(coroutine_id)
             ,m_time(time)
             ,m_elapse(elapse)
+            ,m_threadName(thread_name)
             {}
-
-    void LogEvent::format(const char* fmt, ...)
-    {
-        va_list vl;
-        va_start(vl, fmt);
-        format(fmt, vl);
-        va_end(vl);
-    }
-
-    void LogEvent::format(const char* fmt, va_list vl)
-    {
-        char* buf = nullptr;
-        int len = vasprintf(&buf, fmt, vl);
-        if(len != -1)
-        {
-            m_ss << std::string(buf, len);
-            free(buf);
-        }
-    }
 
     /**************************************************************/
     /* Class: LogEventWrapper */
@@ -199,6 +181,15 @@ namespace agent{
         void format(std::ostream& os, Logger::ptr logger, LogLevel ll, LogEvent::ptr event) override
         {
             os << event -> getThreadId();
+        }
+    };
+
+    class ThreadNameFormatItem: public LogFormatter::FormatItem{
+    public:
+        ThreadNameFormatItem(const std::string& str = ""){}
+        void format(std::ostream& os, Logger::ptr logger, LogLevel ll, LogEvent::ptr event) override
+        {
+            os << event -> getThreadName();
         }
     };
 
@@ -374,6 +365,7 @@ namespace agent{
                 XX(r, ElapseFormatItem),
                 XX(c, LoggerNameFormatItem),
                 XX(t, ThreadIdFormatItem),
+                XX(N, ThreadNameFormatItem),
                 XX(C, CoroutineIdFormatItem),
                 XX(d, DateTimeFormatItem),
                 XX(f, FilenameFormatItem),
@@ -516,7 +508,7 @@ namespace agent{
     :m_name(name)
     ,m_level(LogLevel::DEBUG)
     {
-        m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%t%T%C%T%[%p]%T(%f:%l)%T%m%n"));
+        m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%N:%t%T%C%T%[%p]%T(%f:%l)%T%m%n"));
 
         // if(m_name == "root")
         // {
