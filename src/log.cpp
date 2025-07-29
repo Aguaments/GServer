@@ -508,7 +508,7 @@ namespace agent{
     :m_name(name)
     ,m_level(LogLevel::DEBUG)
     {
-        m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%N:%t%T%C%T%[%p]%T(%f:%l)%T%m%n"));
+        m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%N:%t%T%C%T%[%c][%p]%T(%f:%l)%T%m%n"));
 
         // if(m_name == "root")
         // {

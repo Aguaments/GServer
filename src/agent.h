@@ -6,3 +6,4 @@
 #include "thread.h"
 #include "macro.h"
 #include "coroutine.h"
+#include "scheduler.h"

@@ -72,6 +72,7 @@ namespace agent{
             AGENT_LOG_ERROR(g_logger) << "pthread_create thread fail, rt=" << rt << " name=" << name;
             throw std::logic_error("pthread_create error");
         }
+        AGENT_LOG_ERROR(g_logger) << "Thread " << Utils::getThreadId() << " start...";
         m_semaphore.wait(); // 如果pthread_create中的run函数没有执行完毕，会阻塞主线程，如果在run中的函数中没有执行完，该线程的创建就会变成串行执行。
     }
 
@@ -79,6 +80,7 @@ namespace agent{
     {
         if(m_thread)
         {
+            AGENT_LOG_ERROR(g_logger) << "Thread " << Utils::getThreadId() << " end.";
             pthread_detach(m_thread);
         }
     }

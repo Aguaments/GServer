@@ -47,7 +47,7 @@ namespace agent{
 
         std::stringstream ss;
 
-        for(size_t i = 0; i < bt.size(); ++ i)
+        for(size_t i = skip; i < bt.size(); ++ i)
         {
             ss << prefix << bt[i] << std::endl;
         }

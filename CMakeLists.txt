@@ -51,5 +51,8 @@ set(LIB_LIB
 add_executable(test_coroutine test/test_coroutine.cpp)
 target_link_libraries(test_coroutine ${LIB_LIB})
 
+add_executable(test_scheduler test/test_scheduler.cpp)
+target_link_libraries(test_scheduler ${LIB_LIB})
+
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

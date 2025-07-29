@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <atomic>
 
 #include "coroutine.h"
 #include "macro.h"
@@ -18,13 +19,14 @@ namespace agent
         using ptr = std::shared_ptr<Scheduler>;
         typedef Mutex MutexType;
 
-        Scheduler(size_t threads = 1, bool use_caller = true, const std::string& name = "");
+        // Scheduler();
+        Scheduler(size_t threads = 1, bool use_caller = true, const std::string& name = "UNKNOW");
         virtual ~Scheduler();
 
         const std::string getName() const {return m_name;}
 
         static Scheduler* GetThis();
-        static Coroutine* GetMainCouroutine();
+        static Coroutine* GetMainCoroutine();
 
         void start();
         void stop();
@@ -33,13 +35,12 @@ namespace agent
         void schedule(CorOrCb cc, int thread = -1)
         {
             MutexType::Lock lock(m_mutex);
-            need_tickle = scheduleNoLock(cc, thread);
+            bool need_tickle = scheduleNoLock(cc, thread);
             if(need_tickle)
             {
                 tickle();
             }
         }
-
         template<typename InputIterator>
         void schedule(InputIterator begin, InputIterator end)
         {
@@ -55,7 +56,6 @@ namespace agent
             {
                 tickle();
             }
-
         }
     private:
         template<typename CorOrCb>
@@ -63,7 +63,7 @@ namespace agent
         {
             bool need_tickle = m_coroutines.empty();
             CoroutineAndThread ct(cc, thread);
-            if(ct.cor || ct.cb)
+            if(ct.coroutine || ct.cb)
             {
                 m_coroutines.push_back(ct);
             }
@@ -117,7 +117,7 @@ namespace agent
                 cb = nullptr;
                 threadId = -1;
             }
-        };
+        }CoroutineAndThread;
 
     private:
         MutexType m_mutex;
@@ -128,13 +128,13 @@ namespace agent
 
     
     protected:
-        std::vector<int> m_threadIds;   // 所有的线程id
-        size_t m_threadCount = 0;           // 线程总数 
-        size_t m_activeThreadCount = 0;     // 活跃的线程数
-        size_t m_idleThreadCount = 0;       // 空闲线程数量
-        bool m_stopping = true;                // 线程状态
-        bool m_normalStop = false;                // 是否为主动停止
-        int m_mainThreadId = 0;               // 主线程id
+        std::vector<int> m_threadIds;                       // 所有的线程id
+        size_t m_threadCount = 0;                           // 线程总数 
+        std::atomic<size_t> m_activeThreadCount = {0};        // 活跃的线程数
+        std::atomic<size_t> m_idleThreadCount = {0};          // 空闲线程数量
+        bool m_stopping = true;                             // 线程状态
+        bool m_normalStop = false;                          // 是否为主动停止
+        int m_mainThreadId = 0;                             // 主线程id
 
     };
 }

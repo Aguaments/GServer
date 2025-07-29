@@ -6,6 +6,7 @@
 #include "macro.h"
 #include "config.h"
 #include "log.h"
+#include "scheduler.h"
 
 
 namespace agent{
@@ -38,6 +39,7 @@ namespace agent{
 
     Coroutine::Coroutine()
     {
+        // 创建主协程不需要栈空间
         m_state = State::EXEC;
         SetThis(this);
 
@@ -50,7 +52,7 @@ namespace agent{
         AGENT_LOG_DEBUG(g_logger) << "Start Main coroutine: " << m_id;
     }
 
-    Coroutine::Coroutine(std::function<void()> cb, size_t stacksize)
+    Coroutine::Coroutine(std::function<void()> cb, size_t stacksize, bool use_caller)
     :m_id(++s_coroutine_id), m_cb(cb)
     {
         AGENT_LOG_DEBUG(g_logger) << "Start coroutine: " << m_id;
@@ -66,7 +68,14 @@ namespace agent{
         m_ctx.uc_stack.ss_sp = m_stack;
         m_ctx.uc_stack.ss_size = m_stacksize;
 
-        makecontext(&m_ctx, &MainFunc, 0);
+        if(use_caller)
+        {
+            makecontext(&m_ctx, &MainFunc, 0);
+        }
+        else{
+            makecontext(&m_ctx, &CallerMainFunc, 0);
+        }
+        
     }
 
     Coroutine::~Coroutine()
@@ -76,8 +85,10 @@ namespace agent{
         {
             AGENT_ASSERT(m_state == State::TERM || m_state == State::INIT || m_state == State::EXCEPT);
             StackMemoryPool::Free(m_stack, m_stacksize);
+            AGENT_LOG_DEBUG(g_logger) << "End coroutine: " << m_id;
         }
         else{
+            // 主协程没有分配独立的栈，使用的是线程的栈，因此会走到无栈的这条路径上进行协程的释放
             AGENT_ASSERT(!m_cb);
             AGENT_ASSERT(m_state == State::EXEC);
 
@@ -86,7 +97,7 @@ namespace agent{
             {
                 SetThis(nullptr);
             }
-            AGENT_LOG_DEBUG(g_logger) << "End coroutine: " << m_id;
+            AGENT_LOG_DEBUG(g_logger) << "End Main coroutine: " << m_id;
         }
     }
 
@@ -94,7 +105,9 @@ namespace agent{
     void Coroutine::reset(std::function<void()> cb)
     {
         AGENT_ASSERT(m_stacksize);
-        AGENT_ASSERT(m_state == State::TERM || m_state == State::INIT)
+        AGENT_ASSERT(m_state == State::TERM 
+                || m_state == State::INIT
+                || m_state == State::EXCEPT)
         m_cb = cb;
         if(getcontext(&m_ctx))
         {
@@ -114,7 +127,7 @@ namespace agent{
         AGENT_ASSERT(m_state != State::EXEC);
         m_state = State::EXEC;
 
-        if(swapcontext(&(t_thread_coroutine-> m_ctx), &m_ctx))
+        if(swapcontext(&(Scheduler::GetMainCoroutine()-> m_ctx), &m_ctx))
         {
             AGENT_ASSERT_PARA(false, "swapcontext");
         }
@@ -122,8 +135,36 @@ namespace agent{
     // 切换到后台执行，当前协程切换到主协程
     void Coroutine::swapOut()
     {
-        SetThis(t_thread_coroutine.get());
-        if(swapcontext(&m_ctx, &(t_thread_coroutine -> m_ctx)))
+        // SetThis(Scheduler::GetMainCoroutine());
+        // if(t_coroutine != Scheduler::GetMainCoroutine())
+        // {
+        //     if(swapcontext(&m_ctx, &(Scheduler::GetMainCoroutine() -> m_ctx)))
+        //     {
+        //         AGENT_ASSERT_PARA(false, "swapcontext");
+        //     }
+        // }
+        // else
+        // {
+            if(swapcontext(&m_ctx, &t_thread_coroutine -> m_ctx))
+            {
+                AGENT_ASSERT_PARA(false, "swapcontext");
+            }
+        // }
+    }
+
+    void Coroutine::call()
+    {
+        SetThis(this);
+        m_state = State::EXEC;
+        if(swapcontext(&(t_thread_coroutine -> m_ctx), &m_ctx)) // 激活协程中的函数调用
+        {
+            AGENT_ASSERT_PARA(false, "swapcontext error");
+        }
+    }
+
+    void Coroutine::back()
+    {
+        if(swapcontext(&m_ctx, &t_thread_coroutine -> m_ctx))
         {
             AGENT_ASSERT_PARA(false, "swapcontext");
         }
@@ -190,6 +231,31 @@ namespace agent{
         auto raw_ptr = cur.get();
         cur.reset();
         raw_ptr -> swapOut();
+    }
+
+    void Coroutine::CallerMainFunc()
+    {
+        Coroutine::ptr cur = GetThis(); // 在协程栈上创建的智能指针
+        AGENT_ASSERT(cur);
+        try
+        {
+            cur -> m_cb();
+            cur -> m_cb = nullptr;
+            cur -> m_state = State::TERM;
+        }
+        catch(std::exception& e)
+        {
+            cur -> m_state = State::EXCEPT;
+            AGENT_LOG_ERROR(g_logger) << "Coroutine Except: " << e.what();
+        }
+        catch(...){
+            cur -> m_state = State::EXCEPT;
+            AGENT_LOG_ERROR(g_logger) << "Coroutine Except";
+        }
+
+        auto raw_ptr = cur.get();
+        cur.reset();
+        raw_ptr -> back();
     }
 
     uint64_t Coroutine::GetCoroutineId()
