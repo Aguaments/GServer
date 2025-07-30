@@ -15,7 +15,7 @@ namespace agent{
         static std::string BacktraceToString(int size, int skip = 0, const std::string& prefix = "");
 
     private:
-        static void Backtrace(std::vector<std::string>& bt, int size, int skip = 0);
+        static void Backtrace(std::vector<std::string>& bt, int size, int skip = 2);
         
     };
 }

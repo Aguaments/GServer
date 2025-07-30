@@ -29,7 +29,7 @@ namespace agent{
     private:
         Coroutine();
     public:
-        Coroutine(std::function<void()> cb, size_t stacksize = 0, bool user_caller = false);
+        Coroutine(std::function<void()> cb, size_t stacksize = 0, bool user_caller = true, std::string name = "");
         ~Coroutine();
 
         // 重置协程函数，在init中或者term状态
@@ -44,6 +44,7 @@ namespace agent{
 
         uint64_t getId() const {return m_id;}
         const State getState() const {return m_state;}
+        const std::string getName() const {return m_name;}
         // void setState(State state) {m_state = state;}
 
     public:
@@ -63,6 +64,8 @@ namespace agent{
         static uint64_t TotalCoroutine();
 
         static uint64_t GetCoroutineId();
+
+        
     
     private:
         uint64_t m_id = 0; // 协程id
@@ -73,5 +76,7 @@ namespace agent{
         void* m_stack = nullptr;
 
         std::function<void()> m_cb;
+
+        std::string m_name;
     };
 }

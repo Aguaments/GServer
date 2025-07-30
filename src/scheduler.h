@@ -13,7 +13,7 @@
 
 namespace agent
 {
-    class Scheduler
+    class Scheduler: public std::enable_shared_from_this<Scheduler>
     {
     public:
         using ptr = std::shared_ptr<Scheduler>;
@@ -34,8 +34,11 @@ namespace agent
         template<typename CorOrCb>
         void schedule(CorOrCb cc, int thread = -1)
         {
-            MutexType::Lock lock(m_mutex);
-            bool need_tickle = scheduleNoLock(cc, thread);
+            bool need_tickle = false;
+            {
+                MutexType::Lock lock(m_mutex);
+                need_tickle = scheduleNoLock(cc, thread);
+            }
             if(need_tickle)
             {
                 tickle();

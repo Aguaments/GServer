@@ -38,9 +38,11 @@ namespace agent{
     using StackMemoryPool = MemoryPool;
 
     Coroutine::Coroutine()
+    :m_id(s_coroutine_id ++)
     {
-        // 创建主协程不需要栈空间
+        // 创建主协程不需要栈空间， 同时主协程创建后即为运行态，不需要swapin切换执行
         m_state = State::EXEC;
+        m_name = "Main Coroutine";
         SetThis(this);
 
         if(getcontext(&m_ctx))
@@ -52,10 +54,10 @@ namespace agent{
         AGENT_LOG_DEBUG(g_logger) << "Start Main coroutine: " << m_id;
     }
 
-    Coroutine::Coroutine(std::function<void()> cb, size_t stacksize, bool use_caller)
-    :m_id(++s_coroutine_id), m_cb(cb)
+    Coroutine::Coroutine(std::function<void()> cb, size_t stacksize, bool use_caller, std::string name)
+    :m_id(s_coroutine_id++), m_cb(cb), m_name(name)
     {
-        AGENT_LOG_DEBUG(g_logger) << "Start coroutine: " << m_id;
+        AGENT_LOG_DEBUG(g_logger) << "Start coroutine: " << m_id << " name: "<< m_name;
         ++s_coroutine_count;
         m_stacksize = stacksize ? stacksize : g_coroutine_stack_size -> getValue();
 
@@ -68,14 +70,7 @@ namespace agent{
         m_ctx.uc_stack.ss_sp = m_stack;
         m_ctx.uc_stack.ss_size = m_stacksize;
 
-        if(use_caller)
-        {
-            makecontext(&m_ctx, &MainFunc, 0);
-        }
-        else{
-            makecontext(&m_ctx, &CallerMainFunc, 0);
-        }
-        
+        makecontext(&m_ctx, &MainFunc, 0);
     }
 
     Coroutine::~Coroutine()
@@ -127,7 +122,8 @@ namespace agent{
         AGENT_ASSERT(m_state != State::EXEC);
         m_state = State::EXEC;
 
-        if(swapcontext(&(Scheduler::GetMainCoroutine()-> m_ctx), &m_ctx))
+        AGENT_LOG_DEBUG(g_logger) << Scheduler::GetMainCoroutine();
+        if(swapcontext(&(Scheduler::GetMainCoroutine() -> m_ctx), &m_ctx))
         {
             AGENT_ASSERT_PARA(false, "swapcontext");
         }
@@ -135,21 +131,11 @@ namespace agent{
     // 切换到后台执行，当前协程切换到主协程
     void Coroutine::swapOut()
     {
-        // SetThis(Scheduler::GetMainCoroutine());
-        // if(t_coroutine != Scheduler::GetMainCoroutine())
-        // {
-        //     if(swapcontext(&m_ctx, &(Scheduler::GetMainCoroutine() -> m_ctx)))
-        //     {
-        //         AGENT_ASSERT_PARA(false, "swapcontext");
-        //     }
-        // }
-        // else
-        // {
-            if(swapcontext(&m_ctx, &t_thread_coroutine -> m_ctx))
-            {
-                AGENT_ASSERT_PARA(false, "swapcontext");
-            }
-        // }
+        SetThis(Scheduler::GetMainCoroutine());
+        if(swapcontext(&m_ctx, &(Scheduler::GetMainCoroutine() -> m_ctx)))
+        {
+            AGENT_ASSERT_PARA(false, "swapcontext");
+        }
     }
 
     void Coroutine::call()
@@ -164,7 +150,8 @@ namespace agent{
 
     void Coroutine::back()
     {
-        if(swapcontext(&m_ctx, &t_thread_coroutine -> m_ctx))
+        SetThis(t_thread_coroutine.get());
+        if(swapcontext(&m_ctx, &(t_thread_coroutine -> m_ctx)))
         {
             AGENT_ASSERT_PARA(false, "swapcontext");
         }
@@ -211,6 +198,7 @@ namespace agent{
     void Coroutine::MainFunc()
     {
         Coroutine::ptr cur = GetThis(); // 在协程栈上创建的智能指针
+        AGENT_LOG_DEBUG(g_logger) << "[Start Main Func] Coroutine name: " << cur -> getName() << " Coroutine num: " << cur -> GetCoroutineId();
         AGENT_ASSERT(cur);
         try
         {
@@ -228,9 +216,20 @@ namespace agent{
             AGENT_LOG_ERROR(g_logger) << "Coroutine Except";
         }
 
+        
         auto raw_ptr = cur.get();
+        AGENT_LOG_DEBUG(g_logger) << "[End Main Func] Coroutine name: " << raw_ptr -> getName() << " Coroutine num: " << raw_ptr ->  getId();
         cur.reset();
-        raw_ptr -> swapOut();
+        if(raw_ptr != Scheduler::GetMainCoroutine())
+        {
+            raw_ptr -> swapOut();
+        }
+        else{
+            raw_ptr -> back();
+        }
+        
+
+        AGENT_LOG_DEBUG(g_logger) << "never reach";
     }
 
     void Coroutine::CallerMainFunc()
