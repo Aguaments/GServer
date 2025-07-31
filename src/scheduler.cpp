@@ -69,15 +69,13 @@ namespace agent
 
             AGENT_ASSERT(m_threads.empty());
 
-            m_threadIds.resize(m_threadCount);
+            m_threads.resize(m_threadCount);
 
-            
             for(size_t i = 0; i < m_threadCount; ++ i)
             {
-                m_threads.push_back(Thread::ptr(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i))));
+                m_threads[i].reset(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i)));
                 m_threadIds.push_back(m_threads[i] -> getId()); // thread中的信号量就保证了线程初始化完毕后
             }
-            m_sem.wait();
         }
         if(m_mainCoroutine)
         {
@@ -87,28 +85,6 @@ namespace agent
 
     void Scheduler::stop()
     {
-        // m_normalStop = true;
-        // if(m_mainCoroutine 
-        //     && m_threadCount == 0 
-        //     && (m_mainCoroutine -> getState() == Coroutine::State::TERM
-        //     || m_mainCoroutine -> getState() == Coroutine::State::INIT))
-        // {
-        //     AGENT_LOG_INFO(g_logger) << this << " stopped";
-        //     m_stopping = true; 
-        //     if(stopping())
-        //     {
-        //         return;
-        //     }
-        // }
-        //bool exit_on_this_coroutine = false;
-        // if(m_mainThreadId != -1)
-        // {
-        //     AGENT_ASSERT(GetThis() == this);
-        // }   
-        // else
-        // {
-        //     AGENT_ASSERT(GetThis() != this);
-        // }
         while(true)
         {
             if(m_coroutines.empty())
@@ -122,17 +98,6 @@ namespace agent
                 break;
             }
         }
-        
-        // for(size_t i = 0; i < m_threadCount; ++i)
-        // {
-        //     tickle();
-        // }
-
-        // if(m_mainCoroutine)
-        // {
-        //     tickle();
-        
-        // }
     }
 
     void Scheduler::run()
@@ -149,7 +114,7 @@ namespace agent
         Coroutine::ptr idle_coroutine(new Coroutine(std::bind(&Scheduler::idle, this), 0, true, "idle coroutine"));
 
         CoroutineAndThread ct;
-        while(!m_stopping)
+        while(!stopping())
         {
             ct.reset();
             // bool tickle_me = false;

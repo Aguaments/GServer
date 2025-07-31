@@ -139,6 +139,5 @@ namespace agent
         bool m_stopping = false;                             // 线程状态
         int m_mainThreadId = 0;                             // 主线程id
         std::string m_name;
-        
     };
 }
