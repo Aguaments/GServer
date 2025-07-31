@@ -51,13 +51,13 @@ namespace agent{
         }
 
         ++s_coroutine_count;
-        AGENT_LOG_DEBUG(g_logger) << "Start Main coroutine: " << m_id;
+        AGENT_LOG_DEBUG(g_logger) << "[Init Main coroutine]: " << m_id;
     }
 
     Coroutine::Coroutine(std::function<void()> cb, size_t stacksize, bool use_caller, std::string name)
     :m_id(s_coroutine_id++), m_cb(cb), m_name(name)
     {
-        AGENT_LOG_DEBUG(g_logger) << "Start coroutine: " << m_id << " name: "<< m_name;
+        AGENT_LOG_DEBUG(g_logger) << "[Init coroutine]: " << m_id << " name: "<< m_name;
         ++s_coroutine_count;
         m_stacksize = stacksize ? stacksize : g_coroutine_stack_size -> getValue();
 
@@ -80,7 +80,7 @@ namespace agent{
         {
             AGENT_ASSERT(m_state == State::TERM || m_state == State::INIT || m_state == State::EXCEPT);
             StackMemoryPool::Free(m_stack, m_stacksize);
-            AGENT_LOG_DEBUG(g_logger) << "End coroutine: " << m_id;
+            AGENT_LOG_DEBUG(g_logger) << "[End coroutine]: " << m_id;
         }
         else{
             // 主协程没有分配独立的栈，使用的是线程的栈，因此会走到无栈的这条路径上进行协程的释放
@@ -92,18 +92,19 @@ namespace agent{
             {
                 SetThis(nullptr);
             }
-            AGENT_LOG_DEBUG(g_logger) << "End Main coroutine: " << m_id;
+            AGENT_LOG_DEBUG(g_logger) << "[End Main coroutine]: " << m_id;
         }
     }
 
     // 重置协程函数，协程执行完毕后内存没有释放，使用该函数可以重置为新的协程继续运行
-    void Coroutine::reset(std::function<void()> cb)
+    void Coroutine::reset(std::function<void()> cb, std::string name)
     {
         AGENT_ASSERT(m_stacksize);
         AGENT_ASSERT(m_state == State::TERM 
                 || m_state == State::INIT
                 || m_state == State::EXCEPT)
         m_cb = cb;
+        m_name = name;
         if(getcontext(&m_ctx))
         {
             AGENT_ASSERT_PARA(false, "getcontext");
@@ -118,11 +119,11 @@ namespace agent{
     // 切换到当前协程执行，将正在运行的协程切换到后台，调用的协程转为运行。主协程切换当前协程
     void Coroutine::swapIn()
     {   
+        AGENT_LOG_DEBUG(g_logger) << "[Start swapin]: Coroutine name = " << this -> m_name;
         SetThis(this);
         AGENT_ASSERT(m_state != State::EXEC);
         m_state = State::EXEC;
 
-        AGENT_LOG_DEBUG(g_logger) << Scheduler::GetMainCoroutine();
         if(swapcontext(&(Scheduler::GetMainCoroutine() -> m_ctx), &m_ctx))
         {
             AGENT_ASSERT_PARA(false, "swapcontext");
@@ -131,6 +132,7 @@ namespace agent{
     // 切换到后台执行，当前协程切换到主协程
     void Coroutine::swapOut()
     {
+        AGENT_LOG_DEBUG(g_logger) << "[Start swapout]: Current coroutine name = " << this -> m_name;
         SetThis(Scheduler::GetMainCoroutine());
         if(swapcontext(&m_ctx, &(Scheduler::GetMainCoroutine() -> m_ctx)))
         {
@@ -220,15 +222,14 @@ namespace agent{
         auto raw_ptr = cur.get();
         AGENT_LOG_DEBUG(g_logger) << "[End Main Func] Coroutine name: " << raw_ptr -> getName() << " Coroutine num: " << raw_ptr ->  getId();
         cur.reset();
-        if(raw_ptr != Scheduler::GetMainCoroutine())
+        if(raw_ptr == Scheduler::GetMainCoroutine())
         {
-            raw_ptr -> swapOut();
-        }
-        else{
             raw_ptr -> back();
         }
-        
-
+        else{
+            raw_ptr -> swapOut();
+        }
+        std::cout << raw_ptr << ": " << Scheduler::GetMainCoroutine();
         AGENT_LOG_DEBUG(g_logger) << "never reach";
     }
 

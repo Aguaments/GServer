@@ -15,6 +15,19 @@
     - %L
     - %m
     - %n
+- 相关符号对应的含义
+    m：Message
+    p：Level
+    r：Elapse
+    c：LoggerName
+    t：ThreadId
+    N：ThreadName
+    C：CoroutineId
+    d：DateTime
+    f：Filename
+    l：Line
+    n：NewLine
+    T：Tab
 ## 解析思路
 - 不包含格式的解析类型  %xxx          ----------type 0
 - 包含格式的解析类型    %xxx{xxx}     ----------type 1

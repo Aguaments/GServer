@@ -29,11 +29,11 @@ namespace agent{
     private:
         Coroutine();
     public:
-        Coroutine(std::function<void()> cb, size_t stacksize = 0, bool user_caller = true, std::string name = "");
+        Coroutine(std::function<void()> cb, size_t stacksize = 0, bool user_caller = true, std::string name = "User Coroutine");
         ~Coroutine();
 
         // 重置协程函数，在init中或者term状态
-        void reset(std::function<void()> cb);
+        void reset(std::function<void()> cb, std::string name = "");
         // 切换到当前协程执行
         void swapIn();
         // 切换到后台执行

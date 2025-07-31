@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "scheduler.h"
 #include "utils.h"
 #include "log.h"
@@ -40,70 +42,9 @@ namespace agent
 
     Scheduler::~Scheduler()
     {
-        AGENT_ASSERT(m_stopping);
-        if(GetThis() == this) t_scheduler = nullptr;
-    }
-
-    void Scheduler::start()
-    {
+        while(!m_stopping)
         {
-            MutexType::Lock lock(m_mutex);
-            if(!m_stopping)
-            {
-                return;
-            }
-            m_stopping = false;
-
-            AGENT_ASSERT(m_threads.empty());
-
-            m_threadIds.resize(m_threadCount);
-            for(size_t i = 0; i < m_threadCount; ++ i)
-            {
-                m_threads.push_back(Thread::ptr(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i))));
-                m_threadIds.push_back(m_threads[i] -> getId()); // thread中的信号量就保证了线程初始化完毕后
-            }
-        }
-        if(m_mainCoroutine)
-        {
-            m_mainCoroutine -> call();
-        }
-    }
-
-    void Scheduler::stop()
-    {
-        m_normalStop = true;
-        if(m_mainCoroutine 
-            && m_threadCount == 0 
-            && (m_mainCoroutine -> getState() == Coroutine::State::TERM
-            || m_mainCoroutine -> getState() == Coroutine::State::INIT))
-        {
-            AGENT_LOG_INFO(g_logger) << this << " stopped";
-            m_stopping = true; 
-            if(stopping())
-            {
-                return;
-            }
-        }
-        //bool exit_on_this_coroutine = false;
-        if(m_mainThreadId != -1)
-        {
-            AGENT_ASSERT(GetThis() == this);
-        }   
-        else
-        {
-            AGENT_ASSERT(GetThis() != this);
-        }
-
-        m_stopping = true;
-        for(size_t i = 0; i < m_threadCount; ++i)
-        {
-            tickle();
-        }
-
-        if(m_mainCoroutine)
-        {
-            tickle();
-        
+            sleep(10);
         }
         std::vector<Thread::ptr> thrs;
         {
@@ -116,11 +57,88 @@ namespace agent
         }
     }
 
+    void Scheduler::start()
+    {
+        {
+            MutexType::Lock lock(m_mutex);
+            if(m_stopping)
+            {
+                return;
+            }
+            m_stopping = false;
+
+            AGENT_ASSERT(m_threads.empty());
+
+            m_threadIds.resize(m_threadCount);
+
+            
+            for(size_t i = 0; i < m_threadCount; ++ i)
+            {
+                m_threads.push_back(Thread::ptr(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i))));
+                m_threadIds.push_back(m_threads[i] -> getId()); // thread中的信号量就保证了线程初始化完毕后
+            }
+            m_sem.wait();
+        }
+        if(m_mainCoroutine)
+        {
+            m_mainCoroutine -> call();
+        }
+    }
+
+    void Scheduler::stop()
+    {
+        // m_normalStop = true;
+        // if(m_mainCoroutine 
+        //     && m_threadCount == 0 
+        //     && (m_mainCoroutine -> getState() == Coroutine::State::TERM
+        //     || m_mainCoroutine -> getState() == Coroutine::State::INIT))
+        // {
+        //     AGENT_LOG_INFO(g_logger) << this << " stopped";
+        //     m_stopping = true; 
+        //     if(stopping())
+        //     {
+        //         return;
+        //     }
+        // }
+        //bool exit_on_this_coroutine = false;
+        // if(m_mainThreadId != -1)
+        // {
+        //     AGENT_ASSERT(GetThis() == this);
+        // }   
+        // else
+        // {
+        //     AGENT_ASSERT(GetThis() != this);
+        // }
+        while(true)
+        {
+            if(m_coroutines.empty())
+            {
+                MutexType::Lock lock(m_mutex);
+                m_stopping = true;
+                AGENT_LOG_INFO(g_logger) << "[Stop scheduler] stopping...";
+                AGENT_ASSERT(m_stopping);
+                if(GetThis() == this) t_scheduler = nullptr;
+                m_con.notify_all();
+                break;
+            }
+        }
+        
+        // for(size_t i = 0; i < m_threadCount; ++i)
+        // {
+        //     tickle();
+        // }
+
+        // if(m_mainCoroutine)
+        // {
+        //     tickle();
+        
+        // }
+    }
+
     void Scheduler::run()
     {
-        AGENT_LOG_INFO(g_logger) << "run";
+        AGENT_LOG_INFO(g_logger) << "[Run] Scheduler Main loop";
         setThis();
-        AGENT_LOG_DEBUG(g_logger) << "[Current Thread id] " << Utils::getThreadId();
         if(Utils::getThreadId() != m_mainThreadId)
         {
             t_scheduler_coroutine = Coroutine::GetThis().get();
@@ -131,24 +149,27 @@ namespace agent
         Coroutine::ptr idle_coroutine(new Coroutine(std::bind(&Scheduler::idle, this), 0, true, "idle coroutine"));
 
         CoroutineAndThread ct;
-        while(true)
+        while(!m_stopping)
         {
             ct.reset();
-            bool tickle_me = false;
+            // bool tickle_me = false;
+            // MutexType::Lock lock(m_mutex);
+
+            std::unique_lock<std::mutex> lk(m_uni_mutex);
+            m_con.wait(lk, [this](){
+                AGENT_LOG_DEBUG(g_logger) << "[Thread " << Utils::getThreadId() <<"] Wait coroutine task ...";
+                return !(this -> m_coroutines.empty()) || this -> m_stopping;
+            });
             {
-                MutexType::Lock lock(m_mutex);
                 auto it = m_coroutines.begin();
                 while(it != m_coroutines.end())
                 {
                     if(it -> threadId != -1 && it -> threadId != Utils::getThreadId())
                     {
                         ++ it;
-                        tickle_me = true;
                         continue;
                     }
-
                     AGENT_ASSERT(it -> coroutine || it -> cb);
-
                     if(it -> coroutine && it -> coroutine -> getState() == Coroutine::State::EXEC)
                     {
                         ++it;
@@ -162,11 +183,11 @@ namespace agent
                 }
             }
 
-            if(tickle_me)
-            {
-                AGENT_LOG_INFO(g_logger) << "start tickle";
-                tickle();
-            }
+            // if(tickle_me)
+            // {
+            //     AGENT_LOG_INFO(g_logger) << "start tickle";
+            //     tickle();
+            // }
 
             if(ct.coroutine && (ct.coroutine -> getState() != Coroutine::State::TERM
                             &&ct.coroutine -> getState() != Coroutine::State::EXCEPT))
@@ -187,8 +208,9 @@ namespace agent
             }
             else if(ct.cb)
             {
+                std::string name = "User Coroutine";
                 if(cb_coroutine){
-                    cb_coroutine -> reset(ct.cb);
+                    cb_coroutine -> reset(ct.cb, name);
                 }
                 else
                 {
@@ -217,8 +239,7 @@ namespace agent
             {
                 if(idle_coroutine -> getState() == Coroutine::State::TERM)
                 {
-                    AGENT_LOG_INFO(g_logger) << "[Idle Coroutine] idle coroutine term";
-                    break;
+                    idle_coroutine -> reset([this](){this -> idle();}, "Idle Coroutine");
                 }
                 idle_coroutine -> swapIn();
                 m_activeThreadCount--;
@@ -239,11 +260,12 @@ namespace agent
     bool Scheduler::stopping()
     {
         MutexType::Lock lock(m_mutex);
-        return m_normalStop && m_stopping && m_coroutines.empty() && m_activeThreadCount == 0;
+        return m_stopping && m_coroutines.empty() && m_activeThreadCount == 0;
     }
     void Scheduler::idle()
     {
-        AGENT_LOG_INFO(g_logger) << "idle" ;
+        AGENT_LOG_INFO(g_logger) << "[Idle Coroutine] idle coroutine running" ;
+        sleep(3);
     }
 
     Scheduler* Scheduler::GetThis()

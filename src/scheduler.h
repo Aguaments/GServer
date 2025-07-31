@@ -6,6 +6,7 @@
 #include <string>
 #include <functional>
 #include <atomic>
+#include <condition_variable>
 
 #include "coroutine.h"
 #include "macro.h"
@@ -41,7 +42,7 @@ namespace agent
             }
             if(need_tickle)
             {
-                tickle();
+                m_con.notify_one();
             }
         }
         template<typename InputIterator>
@@ -57,7 +58,7 @@ namespace agent
             }
             if(need_tickle)
             {
-                tickle();
+                m_con.notify_one();
             }
         }
     private:
@@ -124,20 +125,20 @@ namespace agent
 
     private:
         MutexType m_mutex;
+        std::mutex m_uni_mutex;
+        std::condition_variable m_con;
         std::vector<Thread::ptr> m_threads;
         std::list<CoroutineAndThread> m_coroutines;
         Coroutine::ptr m_mainCoroutine;
-        std::string m_name;
 
     
     protected:
         std::vector<int> m_threadIds;                       // 所有的线程id
         size_t m_threadCount = 0;                           // 线程总数 
         std::atomic<size_t> m_activeThreadCount = {0};        // 活跃的线程数
-        std::atomic<size_t> m_idleThreadCount = {0};          // 空闲线程数量
-        bool m_stopping = true;                             // 线程状态
-        bool m_normalStop = false;                          // 是否为主动停止
+        bool m_stopping = false;                             // 线程状态
         int m_mainThreadId = 0;                             // 主线程id
-
+        std::string m_name;
+        
     };
 }
