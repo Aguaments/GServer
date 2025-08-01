@@ -12,9 +12,10 @@ namespace agent
     static thread_local Coroutine* t_scheduler_coroutine = nullptr;
     // static thread_local Coroutine::ptr t_root_coroutine = nullptr;
 
-    Scheduler::Scheduler(size_t threads, bool use_caller, const std::string& name)
+    Scheduler::Scheduler(size_t threads, bool use_caller, const std::string& name, bool idleFlag)
     :m_name(name)
     {
+        m_idleFlag.store(idleFlag, std::memory_order_release);
         AGENT_ASSERT(threads > 0);
 
         if(use_caller)
@@ -46,15 +47,8 @@ namespace agent
         {
             sleep(10);
         }
-        std::vector<Thread::ptr> thrs;
-        {
-            MutexType::Lock lock(m_mutex);
-            thrs.swap(m_threads);
-        }
-
-        for(auto& i : thrs) {
-            i-> join();
-        }
+        
+        if(GetThis() == this) t_scheduler = nullptr;
     }
 
     void Scheduler::start()
@@ -85,18 +79,23 @@ namespace agent
 
     void Scheduler::stop()
     {
-        while(true)
         {
-            if(m_coroutines.empty())
-            {
-                MutexType::Lock lock(m_mutex);
-                m_stopping = true;
-                AGENT_LOG_INFO(g_logger) << "[Stop scheduler] stopping...";
-                AGENT_ASSERT(m_stopping);
-                if(GetThis() == this) t_scheduler = nullptr;
-                m_con.notify_all();
-                break;
-            }
+            MutexType::Lock lock(m_mutex);
+            m_stopping = true;
+        }
+        
+        AGENT_LOG_INFO(g_logger) << "[Stop scheduler] wait to stop...";
+        AGENT_ASSERT(m_stopping);
+
+        m_con.notify_all();
+        std::vector<Thread::ptr> thrs;
+        {
+            MutexType::Lock lock(m_mutex);
+            thrs.swap(m_threads);
+        }
+
+        for(auto& i : thrs) {
+            i-> join();
         }
     }
 
@@ -111,54 +110,48 @@ namespace agent
 
         
         Coroutine::ptr cb_coroutine;
-        Coroutine::ptr idle_coroutine(new Coroutine(std::bind(&Scheduler::idle, this), 0, true, "idle coroutine"));
+        Coroutine::ptr idle_coroutine(new Coroutine([this](){this -> idle();}, 0, false, "idle coroutine"));
 
         CoroutineAndThread ct;
         while(!stopping())
         {
             ct.reset();
-            // bool tickle_me = false;
-            // MutexType::Lock lock(m_mutex);
-
-            std::unique_lock<std::mutex> lk(m_uni_mutex);
-            m_con.wait(lk, [this](){
-                AGENT_LOG_DEBUG(g_logger) << "[Thread " << Utils::getThreadId() <<"] Wait coroutine task ...";
-                return !(this -> m_coroutines.empty()) || this -> m_stopping;
-            });
             {
-                auto it = m_coroutines.begin();
-                while(it != m_coroutines.end())
+                std::unique_lock<std::mutex> lk(m_uni_mutex);
+                m_con.wait(lk, [this](){
+                    AGENT_LOG_DEBUG(g_logger) << "[Thread " << Utils::getThreadId() <<"] Wait coroutine task ...";
+                    return (!m_coroutines.empty() ||  m_idleFlag) || m_stopping;
+                });
                 {
-                    if(it -> threadId != -1 && it -> threadId != Utils::getThreadId())
+                    // if(this -> m_coroutines.empty() && this -> m_stopping) break;
+                    auto it = m_coroutines.begin();
+                    while(it != m_coroutines.end())
                     {
-                        ++ it;
-                        continue;
-                    }
-                    AGENT_ASSERT(it -> coroutine || it -> cb);
-                    if(it -> coroutine && it -> coroutine -> getState() == Coroutine::State::EXEC)
-                    {
-                        ++it;
-                        continue;
-                    }
+                        if(it -> threadId != -1 && it -> threadId != Utils::getThreadId())
+                        {
+                            ++ it;
+                            continue;
+                        }
+                        AGENT_ASSERT(it -> coroutine || it -> cb);
+                        if(it -> coroutine && it -> coroutine -> getState() == Coroutine::State::EXEC)
+                        {
+                            ++it;
+                            continue;
+                        }
 
-                    ct = *it;
-                    m_activeThreadCount ++;
-                    m_coroutines.erase(it);
-                    break;
+                        ct = *it;
+                        m_activeCoroutineCount ++;
+                        m_coroutines.erase(it);
+                        break;
+                    }
                 }
             }
-
-            // if(tickle_me)
-            // {
-            //     AGENT_LOG_INFO(g_logger) << "start tickle";
-            //     tickle();
-            // }
 
             if(ct.coroutine && (ct.coroutine -> getState() != Coroutine::State::TERM
                             &&ct.coroutine -> getState() != Coroutine::State::EXCEPT))
             {
                 ct.coroutine -> swapIn();
-                --m_activeThreadCount;
+                --m_activeCoroutineCount;
 
                 if(ct.coroutine -> getState() == Coroutine::State::READY)
                 {
@@ -183,7 +176,7 @@ namespace agent
                 }
                 ct.reset();
                 cb_coroutine -> swapIn();
-                m_activeThreadCount --;
+                --m_activeCoroutineCount;
                 if(cb_coroutine -> getState() == Coroutine::State::READY)
                 {
                     schedule(cb_coroutine);
@@ -204,10 +197,13 @@ namespace agent
             {
                 if(idle_coroutine -> getState() == Coroutine::State::TERM)
                 {
-                    idle_coroutine -> reset([this](){this -> idle();}, "Idle Coroutine");
+                    // idle_coroutine -> reset([this](){this -> idle();}, "Idle Coroutine");
+                    break;
                 }
+                if(stopping()) break;
+                ++ m_activeCoroutineCount;
                 idle_coroutine -> swapIn();
-                m_activeThreadCount--;
+                --m_activeCoroutineCount;
                 if(idle_coroutine -> getState() != Coroutine::State::TERM 
                     && idle_coroutine -> getState() != Coroutine::State::EXCEPT)
                 {
@@ -225,12 +221,12 @@ namespace agent
     bool Scheduler::stopping()
     {
         MutexType::Lock lock(m_mutex);
-        return m_stopping && m_coroutines.empty() && m_activeThreadCount == 0;
+        AGENT_LOG_DEBUG(g_logger) << m_activeCoroutineCount;
+        return m_stopping && m_coroutines.empty();
     }
     void Scheduler::idle()
     {
         AGENT_LOG_INFO(g_logger) << "[Idle Coroutine] idle coroutine running" ;
-        sleep(3);
     }
 
     Scheduler* Scheduler::GetThis()

@@ -49,11 +49,17 @@ set(LIB_LIB
 # add_executable(test_util test/test_util.cpp)
 # target_link_libraries(test_util ${LIB_LIB})
 
-add_executable(test_coroutine test/test_coroutine.cpp)
-target_link_libraries(test_coroutine ${LIB_LIB})
+# add_executable(test_coroutine test/test_coroutine.cpp)
+# target_link_libraries(test_coroutine ${LIB_LIB})
 
-add_executable(test_scheduler test/test_scheduler.cpp)
-target_link_libraries(test_scheduler ${LIB_LIB})
+# add_executable(test_scheduler test/test_scheduler.cpp)
+# target_link_libraries(test_scheduler ${LIB_LIB})
+
+add_executable(test_iomanager test/test_iomanager.cpp)
+target_link_libraries(test_iomanager ${LIB_LIB})
+
+add_executable(test_iomanager2 test/test_iomanager2.cpp)
+target_link_libraries(test_iomanager2 ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

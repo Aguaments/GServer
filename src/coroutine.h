@@ -51,7 +51,7 @@ namespace agent{
         // 协程切换到后台，设置ready状态（等待被调度器调用的协程会处于ready状态）
         static void YieldToReady();
         // 协程切换到后台，设置hold状态（不受调度器控制的协程，需要手动恢复的协程）
-        static void YieldToHold();
+        void YieldToHold();
         // 协程执行的主函数
         static void MainFunc();
         static void CallerMainFunc();

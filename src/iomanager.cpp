@@ -14,8 +14,8 @@ namespace agent{
 
     static agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
 
-    IOManager::IOManager(size_t threads, bool use_caller, const std::string& name)
-    :Scheduler(threads, use_caller, name){
+    IOManager::IOManager(size_t threads, bool use_caller, const std::string& name, bool idleFlag)
+    :Scheduler(threads, use_caller, name, idleFlag){
         m_epfd = epoll_create(1);
         m_eventfd = eventfd(0, EFD_NONBLOCK);
         AGENT_ASSERT(m_epfd > 0);
@@ -40,12 +40,12 @@ namespace agent{
 
         epoll_ctl(m_epfd, EPOLL_CTL_ADD, m_eventfd, &evfd_event);
 
-        m_fdContexts.resize(32);
+        contextResize(32);
         start();
     }
     IOManager::~IOManager()
     {
-        stop();
+        // stop();
         close(m_epfd);
         close(m_tickleFds[0]);
         close(m_tickleFds[1]);
@@ -63,18 +63,19 @@ namespace agent{
     int IOManager::addEvent(int fd, EventType event, std::function<void()> cb){
         FdContext* fd_ctx = nullptr;
 
-        RWMutexType::ReadLock lock(m_mutex);
+        RWMutexType::ReadLock lock(m_rwmutex);
 
-        if(m_fdContexts.size() > fd){
+        if((int)m_fdContexts.size() > fd){
+            lock.unlock();
             fd_ctx = m_fdContexts[fd];
         }else{
             lock.unlock();
-            RWMutexType::WriteLock lock2(m_mutex);
-            contextResize(m_fdContexts.size() * 1.5);
+            RWMutexType::WriteLock lock2(m_rwmutex);
+            contextResize(fd * 1.5);
             fd_ctx = m_fdContexts[fd];
         }
 
-        FdContext::MutexType::Lock lock2(fd_ctx -> mutex);
+        FdContext::MutexType::Lock lock3(fd_ctx -> mutex);
         if(fd_ctx -> event & event){
             AGENT_LOG_ERROR(g_logger) << "addEvent assert fd = " << fd 
                                     << " event = " << event 
@@ -111,8 +112,8 @@ namespace agent{
     }
 
     bool IOManager::delEvent(int fd, EventType event){
-        RWMutexType::ReadLock lock(m_mutex);
-        if(m_fdContexts.size() < fd){
+        RWMutexType::ReadLock lock(m_rwmutex);
+        if((int)m_fdContexts.size() < fd){
             return false;
         }
         FdContext* fd_ctx = m_fdContexts[fd];
@@ -145,8 +146,8 @@ namespace agent{
     }
 
     bool IOManager::cancelEvent(int fd, EventType event){
-        RWMutexType::ReadLock lock(m_mutex);
-        if(m_fdContexts.size() < fd){
+        RWMutexType::ReadLock lock(m_rwmutex);
+        if((int)m_fdContexts.size() < fd){
             return false;
         }
         FdContext* fd_ctx = m_fdContexts[fd];
@@ -177,8 +178,8 @@ namespace agent{
     }
 
     bool IOManager::cancelAll(int fd){  // 取消某句柄下的所有事件
-        RWMutexType::ReadLock lock(m_mutex);
-        if(m_fdContexts.size() < fd){
+        RWMutexType::ReadLock lock(m_rwmutex);
+        if((int)m_fdContexts.size() < fd){
             return false;
         }
         FdContext* fd_ctx = m_fdContexts[fd];
@@ -227,8 +228,8 @@ namespace agent{
 
     void IOManager::contextResize(size_t size){
         m_fdContexts.resize(size);
-        for(size_t i; i < m_fdContexts.size(); ++ i){
-            if(m_fdContexts[i]){
+        for(size_t i = 0; i < m_fdContexts.size(); ++ i){
+            if(!m_fdContexts[i]){
                 m_fdContexts[i] = new FdContext;
                 m_fdContexts[i] -> fd = i;
             }
@@ -253,8 +254,15 @@ namespace agent{
     }
 
     void IOManager::FdContext::triggerEvent(EventType ev){
-        AGENT_ASSERT(event & ev);
-        event = (EventType)(event & ~ev);
+    //     AGENT_LOG_INFO(g_logger) << "fd=" << fd
+    //    << " triggerEvent event=" << ev
+    //    << " events=" << event;
+        // AGENT_ASSERT(event & ev);
+        event = (EventType)(event & ev);
+        if(!event){
+            return;
+        }
+
         EventContext& ev_ctx = getContext(event);
         if(ev_ctx.cb){
             ev_ctx.scheduler -> schedule(ev_ctx.cb);
@@ -266,7 +274,7 @@ namespace agent{
     }
 
     void IOManager::tickle(){
-        uint64_t val;
+        uint64_t val = 0;
         size_t rt = write(m_eventfd, &val, sizeof(val));
         AGENT_ASSERT(rt == sizeof(val));
     }
@@ -276,12 +284,14 @@ namespace agent{
     }
 
     void IOManager::idle(){
+        AGENT_LOG_DEBUG(g_logger) << "[IOMANAGER IDLE Coroutine] start";
         epoll_event* events = new epoll_event[64]();
         std::shared_ptr<epoll_event> shared_events(events, [&events](epoll_event* ptr){
             delete[] events;
         });
 
         while(true){
+            AGENT_LOG_DEBUG(g_logger) << "[IOMANAGER IDLE Coroutine] Begin loop epoll_wait";
             if(stopping()){
                 AGENT_LOG_INFO(g_logger) << "name = " << m_name << " idle stopping exit";
                 break;
@@ -349,6 +359,9 @@ namespace agent{
             Coroutine::ptr cur = Coroutine::GetThis();
             auto raw_ptr = cur.get();
             cur.reset();
+
+            raw_ptr -> swapOut();
         }
+        AGENT_LOG_DEBUG(g_logger) << "[IOMANAGER IDLE Coroutine] end";
     }
 }

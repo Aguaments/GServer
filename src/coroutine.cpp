@@ -51,13 +51,13 @@ namespace agent{
         }
 
         ++s_coroutine_count;
-        AGENT_LOG_DEBUG(g_logger) << "[Init Main coroutine]: " << m_id;
+        AGENT_LOG_DEBUG(g_logger) << "[Init Main coroutine]: " << m_id << " name: "<< m_name;
     }
 
     Coroutine::Coroutine(std::function<void()> cb, size_t stacksize, bool use_caller, std::string name)
     :m_id(s_coroutine_id++), m_cb(cb), m_name(name)
     {
-        AGENT_LOG_DEBUG(g_logger) << "[Init coroutine]: " << m_id << " name: "<< m_name;
+        AGENT_LOG_DEBUG(g_logger) << "[Init coroutine] " << m_id << " name: "<< m_name;
         ++s_coroutine_count;
         m_stacksize = stacksize ? stacksize : g_coroutine_stack_size -> getValue();
 
@@ -187,6 +187,7 @@ namespace agent{
     // 协程切换到后台，设置hold状态
     void Coroutine::YieldToHold()
     {
+        AGENT_LOG_DEBUG(g_logger) << "[Start yieldToHold]: Current coroutine name = " << this -> m_name;
         Coroutine::ptr cur = GetThis();
         cur -> m_state = State::HOLD;
         cur -> swapOut();

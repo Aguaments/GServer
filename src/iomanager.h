@@ -20,10 +20,10 @@ namespace agent
         {
             NONE = 0x0,
             READ = 0x1,
-            WRITE = 0X2
+            WRITE = 0X4
         };
     public:
-        IOManager(size_t threads = 1, bool use_caller = true, const std::string& name = "");
+        IOManager(size_t threads = 1, bool use_caller = false, const std::string& name = "", bool idleFlag = true);
         ~IOManager();
 
 
@@ -35,9 +35,9 @@ namespace agent
         static IOManager* GetThis();  // 获取当前的io manager
     
     protected:
-        void tickle() override;
-        bool stopping() override;
-        void idle() override;
+        virtual void tickle() override;
+        virtual bool stopping() override;
+        virtual void idle() override;
 
         void contextResize(size_t size);
 
@@ -65,8 +65,8 @@ namespace agent
         int m_eventfd = 0;
         int m_tickleFds[2];
 
-        std::atomic<size_t> m_pendingEventCount = 0;
-        RWMutexType m_mutex;
+        std::atomic<size_t> m_pendingEventCount {0};
+        RWMutexType m_rwmutex;
         std::vector<FdContext*> m_fdContexts; 
     };
 

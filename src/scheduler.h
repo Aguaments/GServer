@@ -14,14 +14,14 @@
 
 namespace agent
 {
-    class Scheduler: public std::enable_shared_from_this<Scheduler>
+    class Scheduler
     {
     public:
         using ptr = std::shared_ptr<Scheduler>;
         typedef Mutex MutexType;
 
         // Scheduler();
-        Scheduler(size_t threads = 1, bool use_caller = true, const std::string& name = "UNKNOW");
+        Scheduler(size_t threads = 1, bool use_caller = true, const std::string& name = "UNKNOW", bool idleFlag = true);
         virtual ~Scheduler();
 
         const std::string getName() const {return m_name;}
@@ -135,9 +135,10 @@ namespace agent
     protected:
         std::vector<int> m_threadIds;                       // 所有的线程id
         size_t m_threadCount = 0;                           // 线程总数 
-        std::atomic<size_t> m_activeThreadCount = {0};        // 活跃的线程数
+        std::atomic<size_t> m_activeCoroutineCount = {0};        // 活跃的线程数
         bool m_stopping = false;                             // 线程状态
         int m_mainThreadId = 0;                             // 主线程id
         std::string m_name;
+        std::atomic<bool> m_idleFlag {true};
     };
 }
