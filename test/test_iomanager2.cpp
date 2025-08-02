@@ -15,25 +15,25 @@ void test_coroutine(){
     fd = socket(AF_INET, SOCK_STREAM, 0);
     fcntl(fd, F_SETFL, O_NONBLOCK);
 
-    AGENT_LOG_INFO(g_logger) << "test_coroutine sock= " << fd;
-
     sockaddr_in addr;
     memset(&addr, 0, sizeof(sockaddr_in));
 
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(80);
+    addr.sin_port = htons(23);
     inet_pton(AF_INET, "192.168.138.129", &addr.sin_addr.s_addr);
     
     if(!connect(fd, (sockaddr*)&addr, sizeof(addr))){
         AGENT_LOG_ERROR(g_logger) << "connect error";
     }else if(errno == EINPROGRESS){
-        agent::IOManager::GetThis() -> addEvent(fd, agent::IOManager::READ, [](){
-            AGENT_LOG_INFO(g_logger) << "read Callback";
-        });
-
-        // agent::IOManager::GetThis() -> addEvent(fd, agent::IOManager::WRITE, [](){
-        //     AGENT_LOG_INFO(g_logger) << "write Callback";
+        // agent::IOManager::GetThis() -> addEvent(fd, agent::IOManager::READ, [](){
+        //     AGENT_LOG_INFO(g_logger) << "read Callback";
         // });
+
+        agent::IOManager::GetThis() -> addEvent(fd, agent::IOManager::WRITE, [](){
+            AGENT_LOG_INFO(g_logger) << "write Callback";
+            agent::IOManager::GetThis() -> cancelEvent(fd, agent::IOManager::READ);
+            close(fd);
+        });
     }
 
 }

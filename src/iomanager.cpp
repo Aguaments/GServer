@@ -45,7 +45,7 @@ namespace agent{
     }
     IOManager::~IOManager()
     {
-        // stop();
+        stop();
         close(m_epfd);
         close(m_tickleFds[0]);
         close(m_tickleFds[1]);
@@ -76,6 +76,7 @@ namespace agent{
         }
 
         FdContext::MutexType::Lock lock3(fd_ctx -> mutex);
+
         if(fd_ctx -> event & event){
             AGENT_LOG_ERROR(g_logger) << "addEvent assert fd = " << fd 
                                     << " event = " << event 
@@ -83,6 +84,7 @@ namespace agent{
             AGENT_ASSERT(!(fd_ctx -> event & event));
         }
         int op = fd_ctx -> event ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+
         epoll_event ep_event;
         ep_event.events = EPOLLET | fd_ctx->event | event;
         ep_event.data.ptr = fd_ctx;
@@ -108,6 +110,7 @@ namespace agent{
             event_ctx.coroutine = Coroutine::GetThis();
             AGENT_ASSERT(event_ctx.coroutine -> getState() == Coroutine::State::EXEC);
         }
+        AGENT_LOG_DEBUG(g_logger) << "[Add event] " << Utils::print_epoll_events(fd_ctx -> event);
         return 0;
     }
 
@@ -146,6 +149,7 @@ namespace agent{
     }
 
     bool IOManager::cancelEvent(int fd, EventType event){
+        AGENT_LOG_INFO(g_logger) << "[Cancel Event] Cancel fd=" << fd << " event="  << Utils::print_epoll_events(event);
         RWMutexType::ReadLock lock(m_rwmutex);
         if((int)m_fdContexts.size() < fd){
             return false;
@@ -172,6 +176,7 @@ namespace agent{
             return false;
         }
 
+        AGENT_LOG_ERROR(g_logger) << "cancelEvent: " << fd_ctx -> fd << ", " << ep_event.events;
         fd_ctx -> triggerEvent(event);
         -- m_pendingEventCount;
         return true;
@@ -254,16 +259,13 @@ namespace agent{
     }
 
     void IOManager::FdContext::triggerEvent(EventType ev){
-    //     AGENT_LOG_INFO(g_logger) << "fd=" << fd
-    //    << " triggerEvent event=" << ev
-    //    << " events=" << event;
+        AGENT_LOG_DEBUG(g_logger) << "[Trigger Event] fd=" << fd
+       << " trigger Event =" << ev
+       << " fdContext events =" << event;
         // AGENT_ASSERT(event & ev);
-        event = (EventType)(event & ev);
-        if(!event){
-            return;
-        }
+        event = (EventType)(event & ~ev);
 
-        EventContext& ev_ctx = getContext(event);
+        EventContext& ev_ctx = getContext(ev);
         if(ev_ctx.cb){
             ev_ctx.scheduler -> schedule(ev_ctx.cb);
         }else{
@@ -313,14 +315,15 @@ namespace agent{
                 epoll_event& event = events[i];
                 if(event.data.fd == m_eventfd){
                     uint64_t val = 0;
-                    while(read(m_eventfd, &val, sizeof(val)) == sizeof(val));
+                    while(read(m_eventfd, &val, sizeof(val)));
                     continue;
                 }
 
                 FdContext* fd_ctx = (FdContext*)event.data.ptr;
+                AGENT_LOG_DEBUG(g_logger) << "[Thread "<< Utils::getThreadId() << "] " << fd_ctx -> fd << ", Tragger events: [" << Utils::print_epoll_events(event.events) << "]";
                 FdContext::MutexType::Lock lock(fd_ctx -> mutex);
                 if(event.events & (EPOLLERR | EPOLLHUP)){
-                    event.events |= EPOLLIN | EPOLLOUT;
+                    event.events &= EPOLLIN | EPOLLOUT;
                 }
 
                 int real_events = NONE;
@@ -334,10 +337,12 @@ namespace agent{
                 if((fd_ctx -> event & real_events) == NONE){
                     continue;
                 }
-
-                int left_events = (fd_ctx -> event & ~real_events);
+                // AGENT_LOG_ERROR(g_logger) << fd_ctx -> fd << ", events: [" << Utils::print_epoll_events(event.events) << "]";
+                int left_events = (fd_ctx -> event & real_events);
                 int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
                 event.events = EPOLLET | left_events;
+
+                AGENT_LOG_DEBUG(g_logger) << "[Thread  "<< Utils::getThreadId() << "] " <<  fd_ctx -> fd << ", Left events: [" << Utils::print_epoll_events(event.events) << "]";
 
                 int rt2 = epoll_ctl(m_epfd, op, fd_ctx -> fd, &event);
                 if(rt2){

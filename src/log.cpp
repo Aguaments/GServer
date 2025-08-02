@@ -427,8 +427,25 @@ namespace agent{
     {
         if(ll >= m_level)
         {
+            std::string s  = m_formatter -> format(logger, ll, event);
+            switch(ll){
+                case LogLevel::DEBUG:
+                    s = "\033[36m" + s + "\033[0m";
+                    break;
+                // case LogLevel::INFO:
+                //     s = "\033[32m" + s + "\033[0m";
+                //     break;
+                case LogLevel::WARN:
+                    s = "\033[33m" + s + "\033[0m";
+                    break;
+                case LogLevel::ERROR:
+                    s = "\033[31m" + s + "\033[0m";
+                    break; 
+                default:
+                    break;
+            }
             LogMutexType::Lock lock(m_mutex);
-            std::cout << m_formatter -> format(logger, ll, event);
+            std::cout << s;
         }
     }
 

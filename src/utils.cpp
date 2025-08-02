@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include <execinfo.h>
 #include <sys/syscall.h>
+#include <sys/epoll.h>
+#include <sys/time.h>
 
 #include "utils.h"
 #include "log.h"
@@ -18,6 +20,13 @@ namespace agent{
     {
         return Coroutine::GetCoroutineId();
     }
+
+    uint64_t Utils::GetCurrentMS(){
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        return tv.tv_sec * 1000ul  + tv.tv_usec;
+    }
+        uint64_t GetCurrentUS();
 
     void Utils::Backtrace(std::vector<std::string>& bt, int size, int skip)
     {
@@ -51,6 +60,23 @@ namespace agent{
         {
             ss << prefix << bt[i] << std::endl;
         }
+
+        return ss.str();
+    }
+    std::string Utils::print_epoll_events(uint32_t events) {
+        
+        std::stringstream ss;
+
+        if (events & EPOLLIN)          ss << "EPOLLIN ";
+        if (events & EPOLLOUT)         ss << "EPOLLOUT ";
+        if (events & EPOLLPRI)         ss << "EPOLLPRI ";
+        if (events & EPOLLRDHUP)       ss << "EPOLLRDHUP ";
+        if (events & EPOLLERR)         ss << "EPOLLERR ";
+        if (events & EPOLLHUP)         ss << "EPOLLHUP ";
+        if (events & EPOLLET)          ss << "EPOLLET ";
+        if (events & EPOLLONESHOT)     ss << "EPOLLONESHOT ";
+        if (events & EPOLLWAKEUP)      ss << "EPOLLWAKEUP ";
+        if (events & EPOLLEXCLUSIVE)   ss << "EPOLLEXCLUSIVE";
 
         return ss.str();
     }

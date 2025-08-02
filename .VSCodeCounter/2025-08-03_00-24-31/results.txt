@@ -1,0 +1,67 @@
+Date : 2025-08-03 00:24:31
+Directory : /home/ggy/myProject
+Total : 35 files,  3775 codes, 234 comments, 631 blanks, all 4640 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| C++      |         27 |      3,371 |        234 |        558 |      4,163 |
+| Markdown |          6 |        338 |          0 |         55 |        393 |
+| CMake    |          1 |         48 |          0 |         18 |         66 |
+| YAML     |          1 |         18 |          0 |          0 |         18 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------+------------+------------+------------+------------+------------+
+| path                                         | files      | code       | comment    | blank      | total      |
++----------------------------------------------+------------+------------+------------+------------+------------+
+| .                                            |         35 |      3,775 |        234 |        631 |      4,640 |
+| . (Files)                                    |          1 |         48 |          0 |         18 |         66 |
+| config                                       |          1 |         18 |          0 |          0 |         18 |
+| doc                                          |          6 |        338 |          0 |         55 |        393 |
+| src                                          |         19 |      3,012 |        186 |        481 |      3,679 |
+| test                                         |          8 |        359 |         48 |         77 |        484 |
++----------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                     | language | code       | comment    | blank      | total      |
++----------------------------------------------+----------+------------+------------+------------+------------+
+| /home/ggy/myProject/CMakeLists.txt           | CMake    |         48 |          0 |         18 |         66 |
+| /home/ggy/myProject/config/log.yml           | YAML     |         18 |          0 |          0 |         18 |
+| /home/ggy/myProject/doc/config.md            | Markdown |        107 |          0 |         17 |        124 |
+| /home/ggy/myProject/doc/coroutine.md         | Markdown |         43 |          0 |          9 |         52 |
+| /home/ggy/myProject/doc/iomanager.md         | Markdown |          4 |          0 |          2 |          6 |
+| /home/ggy/myProject/doc/log.md               | Markdown |         65 |          0 |          7 |         72 |
+| /home/ggy/myProject/doc/thread.md            | Markdown |        119 |          0 |         19 |        138 |
+| /home/ggy/myProject/doc/timer.md             | Markdown |          0 |          0 |          1 |          1 |
+| /home/ggy/myProject/src/agent.h              | C++      |          9 |          0 |          1 |         10 |
+| /home/ggy/myProject/src/config.cpp           | C++      |         66 |         10 |         11 |         87 |
+| /home/ggy/myProject/src/config.h             | C++      |        401 |         33 |         41 |        475 |
+| /home/ggy/myProject/src/coroutine.cpp        | C++      |        226 |         11 |         33 |        270 |
+| /home/ggy/myProject/src/coroutine.h          | C++      |         53 |         11 |         18 |         82 |
+| /home/ggy/myProject/src/iomanager.cpp        | C++      |        304 |          5 |         63 |        372 |
+| /home/ggy/myProject/src/iomanager.h          | C++      |         58 |          0 |         15 |         73 |
+| /home/ggy/myProject/src/log.cpp              | C++      |        800 |         68 |         88 |        956 |
+| /home/ggy/myProject/src/log.h                | C++      |        194 |         41 |         57 |        292 |
+| /home/ggy/myProject/src/macro.h              | C++      |         22 |          0 |          4 |         26 |
+| /home/ggy/myProject/src/scheduler.cpp        | C++      |        211 |          3 |         32 |        246 |
+| /home/ggy/myProject/src/scheduler.h          | C++      |        122 |          1 |         21 |        144 |
+| /home/ggy/myProject/src/singleton.h          | C++      |         27 |          0 |          2 |         29 |
+| /home/ggy/myProject/src/thread.cpp           | C++      |        104 |          1 |         13 |        118 |
+| /home/ggy/myProject/src/thread.h             | C++      |        266 |          2 |         43 |        311 |
+| /home/ggy/myProject/src/timer.cpp            | C++      |         29 |          0 |          4 |         33 |
+| /home/ggy/myProject/src/timer.h              | C++      |         36 |          0 |         13 |         49 |
+| /home/ggy/myProject/src/utils.cpp            | C++      |         68 |          0 |         16 |         84 |
+| /home/ggy/myProject/src/utils.h              | C++      |         16 |          0 |          6 |         22 |
+| /home/ggy/myProject/test/test_config.cpp     | C++      |        181 |          4 |         26 |        211 |
+| /home/ggy/myProject/test/test_coroutine.cpp  | C++      |         33 |          0 |          7 |         40 |
+| /home/ggy/myProject/test/test_iomanager.cpp  | C++      |         16 |          1 |          4 |         21 |
+| /home/ggy/myProject/test/test_iomanager2.cpp | C++      |         38 |          3 |         12 |         53 |
+| /home/ggy/myProject/test/test_log.cpp        | C++      |         19 |         17 |          6 |         42 |
+| /home/ggy/myProject/test/test_scheduler.cpp  | C++      |         19 |          3 |          4 |         26 |
+| /home/ggy/myProject/test/test_thread.cpp     | C++      |         40 |         20 |         14 |         74 |
+| /home/ggy/myProject/test/test_util.cpp       | C++      |         13 |          0 |          4 |         17 |
+| Total                                        |          |      3,775 |        234 |        631 |      4,640 |
++----------------------------------------------+----------+------------+------------+------------+------------+

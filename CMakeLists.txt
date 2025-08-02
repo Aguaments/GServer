@@ -31,7 +31,8 @@ set(AGENT_LIB_SRC
     src/thread.cpp
     src/coroutine.cpp
     src/scheduler.cpp
-    src/iomanager.cpp)
+    src/iomanager.cpp
+    src/timer.cpp)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})
 

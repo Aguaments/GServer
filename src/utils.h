@@ -13,6 +13,7 @@ namespace agent{
         static int32_t getCoroutineId();
 
         static std::string BacktraceToString(int size, int skip = 0, const std::string& prefix = "");
+        static std::string print_epoll_events(uint32_t events);
 
     private:
         static void Backtrace(std::vector<std::string>& bt, int size, int skip = 2);

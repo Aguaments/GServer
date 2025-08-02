@@ -97,7 +97,7 @@ namespace agent{
         std::function<void()> cb;
         cb.swap(thread ->m_cb);
         thread -> m_semaphore.notify();
-        AGENT_LOG_DEBUG(g_logger) << "[Thread " << Utils::getThreadId() << "] start...";
+        AGENT_LOG_INFO(g_logger) << "[Thread " << Utils::getThreadId() << "] start...";
         cb();
         return 0;
     }

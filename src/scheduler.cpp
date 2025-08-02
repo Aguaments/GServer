@@ -119,7 +119,7 @@ namespace agent
             {
                 std::unique_lock<std::mutex> lk(m_uni_mutex);
                 m_con.wait(lk, [this](){
-                    AGENT_LOG_DEBUG(g_logger) << "[Thread " << Utils::getThreadId() <<"] Wait coroutine task ...";
+                    AGENT_LOG_INFO(g_logger) << "[Thread " << Utils::getThreadId() <<"] Wait coroutine task ...";
                     return (!m_coroutines.empty() ||  m_idleFlag) || m_stopping;
                 });
                 {
@@ -221,7 +221,6 @@ namespace agent
     bool Scheduler::stopping()
     {
         MutexType::Lock lock(m_mutex);
-        AGENT_LOG_DEBUG(g_logger) << m_activeCoroutineCount;
         return m_stopping && m_coroutines.empty();
     }
     void Scheduler::idle()

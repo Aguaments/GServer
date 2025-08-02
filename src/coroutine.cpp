@@ -51,13 +51,13 @@ namespace agent{
         }
 
         ++s_coroutine_count;
-        AGENT_LOG_DEBUG(g_logger) << "[Init Main coroutine]: " << m_id << " name: "<< m_name;
+        AGENT_LOG_INFO(g_logger) << "[Init Main coroutine]: " << m_id << " name: "<< m_name;
     }
 
     Coroutine::Coroutine(std::function<void()> cb, size_t stacksize, bool use_caller, std::string name)
     :m_id(s_coroutine_id++), m_cb(cb), m_name(name)
     {
-        AGENT_LOG_DEBUG(g_logger) << "[Init coroutine] " << m_id << " name: "<< m_name;
+        AGENT_LOG_INFO(g_logger) << "[Init coroutine] Courtine_ID: [" << m_id << "] Coroutine_Name: ["<< m_name << "]";
         ++s_coroutine_count;
         m_stacksize = stacksize ? stacksize : g_coroutine_stack_size -> getValue();
 
@@ -119,7 +119,7 @@ namespace agent{
     // 切换到当前协程执行，将正在运行的协程切换到后台，调用的协程转为运行。主协程切换当前协程
     void Coroutine::swapIn()
     {   
-        AGENT_LOG_DEBUG(g_logger) << "[Start swapin]: Coroutine name = " << this -> m_name;
+        //AGENT_LOG_DEBUG(g_logger) << "[Start swapin]: Coroutine name = " << this -> m_name;
         SetThis(this);
         AGENT_ASSERT(m_state != State::EXEC);
         m_state = State::EXEC;
@@ -132,7 +132,7 @@ namespace agent{
     // 切换到后台执行，当前协程切换到主协程
     void Coroutine::swapOut()
     {
-        AGENT_LOG_DEBUG(g_logger) << "[Start swapout]: Current coroutine name = " << this -> m_name;
+        //AGENT_LOG_DEBUG(g_logger) << "[Start swapout]: Current coroutine name = " << this -> m_name;
         SetThis(Scheduler::GetMainCoroutine());
         if(swapcontext(&m_ctx, &(Scheduler::GetMainCoroutine() -> m_ctx)))
         {
@@ -201,7 +201,7 @@ namespace agent{
     void Coroutine::MainFunc()
     {
         Coroutine::ptr cur = GetThis(); // 在协程栈上创建的智能指针
-        AGENT_LOG_DEBUG(g_logger) << "[Start Main Func] Coroutine name: " << cur -> getName() << " Coroutine num: " << cur -> GetCoroutineId();
+        AGENT_LOG_INFO(g_logger) << "[Start Main Func] Coroutine name: " << cur -> getName() << " Coroutine num: " << cur -> GetCoroutineId();
         AGENT_ASSERT(cur);
         try
         {
@@ -221,7 +221,7 @@ namespace agent{
 
         
         auto raw_ptr = cur.get();
-        AGENT_LOG_DEBUG(g_logger) << "[End Main Func] Coroutine name: " << raw_ptr -> getName() << " Coroutine num: " << raw_ptr ->  getId();
+        AGENT_LOG_INFO(g_logger) << "[End Main Func] Coroutine name: " << raw_ptr -> getName() << " Coroutine num: " << raw_ptr ->  getId();
         cur.reset();
         if(raw_ptr == Scheduler::GetMainCoroutine())
         {

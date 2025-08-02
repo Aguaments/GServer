@@ -1,0 +1,43 @@
+Date : 2025-08-03 00:24:01
+Directory : /home/ggy/myProject/src
+Total : 19 files,  3012 codes, 186 comments, 481 blanks, all 3679 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| C++      |         19 |      3,012 |        186 |        481 |      3,679 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------+------------+------------+------------+------------+------------+
+| path                                  | files      | code       | comment    | blank      | total      |
++---------------------------------------+------------+------------+------------+------------+------------+
+| .                                     |         19 |      3,012 |        186 |        481 |      3,679 |
++---------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------+----------+------------+------------+------------+------------+
+| filename                              | language | code       | comment    | blank      | total      |
++---------------------------------------+----------+------------+------------+------------+------------+
+| /home/ggy/myProject/src/agent.h       | C++      |          9 |          0 |          1 |         10 |
+| /home/ggy/myProject/src/config.cpp    | C++      |         66 |         10 |         11 |         87 |
+| /home/ggy/myProject/src/config.h      | C++      |        401 |         33 |         41 |        475 |
+| /home/ggy/myProject/src/coroutine.cpp | C++      |        226 |         11 |         33 |        270 |
+| /home/ggy/myProject/src/coroutine.h   | C++      |         53 |         11 |         18 |         82 |
+| /home/ggy/myProject/src/iomanager.cpp | C++      |        304 |          5 |         63 |        372 |
+| /home/ggy/myProject/src/iomanager.h   | C++      |         58 |          0 |         15 |         73 |
+| /home/ggy/myProject/src/log.cpp       | C++      |        800 |         68 |         88 |        956 |
+| /home/ggy/myProject/src/log.h         | C++      |        194 |         41 |         57 |        292 |
+| /home/ggy/myProject/src/macro.h       | C++      |         22 |          0 |          4 |         26 |
+| /home/ggy/myProject/src/scheduler.cpp | C++      |        211 |          3 |         32 |        246 |
+| /home/ggy/myProject/src/scheduler.h   | C++      |        122 |          1 |         21 |        144 |
+| /home/ggy/myProject/src/singleton.h   | C++      |         27 |          0 |          2 |         29 |
+| /home/ggy/myProject/src/thread.cpp    | C++      |        104 |          1 |         13 |        118 |
+| /home/ggy/myProject/src/thread.h      | C++      |        266 |          2 |         43 |        311 |
+| /home/ggy/myProject/src/timer.cpp     | C++      |         29 |          0 |          4 |         33 |
+| /home/ggy/myProject/src/timer.h       | C++      |         36 |          0 |         13 |         49 |
+| /home/ggy/myProject/src/utils.cpp     | C++      |         68 |          0 |         16 |         84 |
+| /home/ggy/myProject/src/utils.h       | C++      |         16 |          0 |          6 |         22 |
+| Total                                 |          |      3,012 |        186 |        481 |      3,679 |
++---------------------------------------+----------+------------+------------+------------+------------+
