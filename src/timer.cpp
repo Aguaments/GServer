@@ -31,9 +31,62 @@ namespace agent{
         m_next = Utils::GetCurrentMS() + m_ms; // 具体的执行时间
     }
 
+    Timer::Timer(uint64_t next)
+    :m_next(next){}
+
+    bool Timer::cancel(){
+        TimerManager::RWMutexType::WriteLock lock(m_manager -> m_mutex);
+        if(m_cb){
+            m_cb = nullptr;
+            auto it = m_manager -> m_timers.find(shared_from_this());
+            m_manager -> m_timers.erase(it);
+            return true;
+        }
+        return false;
+    }
+    bool Timer::refresh(){
+        TimerManager::RWMutexType::WriteLock lock(m_manager -> m_mutex);
+        if(!m_cb){
+            return false;
+        }
+        auto it = m_manager -> m_timers.find(shared_from_this());
+        if(it == m_manager -> m_timers.end()){
+            return false;
+        }
+        m_manager -> m_timers.erase(it);
+        m_next = Utils::GetCurrentMS() + m_ms;
+        m_manager -> m_timers.insert(shared_from_this());
+        return true;
+    }
+
+    bool Timer::reset(uint64_t ms, bool from_now){
+        if(ms == m_ms && !from_now){
+            return true;
+        }
+        TimerManager::RWMutexType::WriteLock lock(m_manager -> m_mutex);
+        if(!m_cb){
+            return false;
+        }
+        auto it = m_manager -> m_timers.find(shared_from_this());
+        if(it == m_manager -> m_timers.end()){
+            return false;
+        }
+        m_manager -> m_timers.erase(it);
+        uint64_t start = 0;
+        if(from_now){
+            start = Utils::GetCurrentMS();
+        }else{
+            start = m_next - m_ms;
+        }
+
+        m_ms = ms;
+        m_next = start + m_ms;
+        m_manager -> addTimer(shared_from_this(), lock);
+        return true;
+    }
 
     TimerManager::TimerManager(){
-
+        m_previousTime = Utils::GetCurrentMS();
     }
     TimerManager::~TimerManager(){
 
@@ -42,13 +95,7 @@ namespace agent{
     Timer::ptr TimerManager::addTimer(uint64_t ms, std::function<void()> cb, bool recuring){
         Timer::ptr timer(new Timer(ms, cb, recuring, this));
         RWMutexType::WriteLock lock(m_mutex);
-        auto it = m_timers.insert(timer).first;
-        bool at_front = (it == m_timers.begin());
-        lock.unlock();
-
-        if(at_front){
-            onTimerInsertedAtFront();
-        }
+        addTimer(timer, lock);
         return timer;
     }
 
@@ -65,10 +112,10 @@ namespace agent{
 
     uint64_t TimerManager::getNextTimer(){
         RWMutexType::ReadLock lock(m_mutex);
+        m_tickled = false;
         if(m_timers.empty()){
             return ~0ull;
         }
-
         const Timer::ptr& next = *m_timers.begin();
         uint64_t now_ms = Utils::GetCurrentMS();
         if(now_ms >= next -> m_next){
@@ -87,5 +134,61 @@ namespace agent{
                 return ;
             }
         }
+
+        RWMutexType::WriteLock lock(m_mutex);
+
+        bool rollover = detectClockRoller(now_ms);
+        if(!rollover && ((*m_timers.begin())->m_next == now_ms)){
+            return;
+        }
+
+        Timer::ptr now_timer(new Timer(now_ms));
+        auto it = rollover? m_timers.end() : m_timers.lower_bound(now_timer);
+
+        while(it != m_timers.end() && (*it) -> m_next == now_ms){
+            it ++;
+        } 
+
+        expired.insert(expired.begin(), m_timers.begin(), it);
+        m_timers.erase(m_timers.begin(), it);
+        cbs.reserve(expired.size());
+
+        for(auto& timer: expired){
+            cbs.push_back(timer -> m_cb);
+            if(timer -> m_recuring){
+                timer -> m_next = now_ms + timer -> m_ms;
+                m_timers.insert(timer);
+            }else{
+                timer -> m_cb = nullptr;
+            }
+        }
+    }
+
+    bool TimerManager::hasTimer(){
+        RWMutexType::ReadLock lock(m_mutex);
+        return !m_timers.empty();
+    }
+
+    void TimerManager::addTimer(Timer::ptr val, RWMutexType::WriteLock& lock){
+        auto it = m_timers.insert(val).first;
+        bool at_front = (it == m_timers.begin()) && !m_tickled;
+        if(at_front){
+            m_tickled = true;
+        }
+        lock.unlock();
+
+        if(at_front){
+            onTimerInsertedAtFront();
+        }
+    }
+
+    bool TimerManager::detectClockRoller(uint64_t now_ms){
+        bool rollover = false;
+        if(now_ms < m_previousTime && now_ms < (m_previousTime - 60 * 60 * 1000)){
+            rollover = true;
+        }
+
+        m_previousTime = now_ms;
+        return rollover;
     }
 }

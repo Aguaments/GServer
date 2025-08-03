@@ -42,12 +42,24 @@ void test(){
     AGENT_LOG_INFO(g_logger) << " test ------------";
 }
 
+void test_timer(){
+    agent::IOManager iom(2, false, "test", true);
+    iom.addTimer(500, [](){
+        AGENT_LOG_INFO(g_logger) << "timer....";
+    }, true);
+}
+
 int main()
 {
+    // agent::IOManager iom(2, false, "test", true);
+    // iom.schedule(&test);
+    // iom.schedule(&test_coroutine);
     agent::IOManager iom(2, false, "test", true);
-    iom.schedule(&test);
-    iom.schedule(&test_coroutine);
-    sleep(10000);
+    iom.addTimer(500, [](){
+        AGENT_LOG_INFO(g_logger) << "timer....";
+    }, true);
+    iom.schedule(test);
+    // sleep(10000);
     return 0;
 
 }

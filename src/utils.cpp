@@ -26,7 +26,12 @@ namespace agent{
         gettimeofday(&tv, NULL);
         return tv.tv_sec * 1000ul  + tv.tv_usec;
     }
-        uint64_t GetCurrentUS();
+    
+    uint64_t Utils::GetCurrentUS(){
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        return tv.tv_sec * 1000ul * 1000ul  + tv.tv_usec / 1000ul;
+    }
 
     void Utils::Backtrace(std::vector<std::string>& bt, int size, int skip)
     {

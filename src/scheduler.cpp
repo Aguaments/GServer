@@ -97,6 +97,8 @@ namespace agent
         for(auto& i : thrs) {
             i-> join();
         }
+        AGENT_LOG_INFO(g_logger) << "[Stop] "<< "{Active Coroutine counts: " << m_activeCoroutineCount
+                                 << "} {Task Number: " << m_coroutines.size() << "}";
     }
 
     void Scheduler::run()

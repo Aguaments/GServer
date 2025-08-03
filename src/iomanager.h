@@ -7,10 +7,11 @@
 
 #include "scheduler.h"
 #include "thread.h"
+#include "timer.h"
 
 namespace agent
 {
-    class IOManager: public Scheduler
+    class IOManager: public Scheduler, public TimerManager
     {
     public:
         using ptr = std::shared_ptr<IOManager>;
@@ -37,9 +38,13 @@ namespace agent
     protected:
         virtual void tickle() override;
         virtual bool stopping() override;
+        
         virtual void idle() override;
 
+        virtual void onTimerInsertedAtFront() override;
+
         void contextResize(size_t size);
+        bool stopping(uint64_t& timeout);
 
     private:
         typedef struct{
