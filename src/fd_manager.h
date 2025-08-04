@@ -3,6 +3,7 @@
 #include <memory>
 #include "thread.h"
 #include "iomanager.h"
+#include "singleton.h"
 
 namespace agent{
     class FdCtx: public std::enable_shared_from_this<FdCtx>{
@@ -49,5 +50,5 @@ namespace agent{
     private:
         RWMutexType m_mutex;
         std::vector<FdCtx::ptr> m_datas;
-    }
+    };
 }

@@ -7,10 +7,13 @@
 #include "coroutine.h"
 #include "iomanager.h"
 #include "scheduler.h"
+#include "log.h"
+#include "fd_manager.h"
 
 namespace agent{
     
     static thread_local bool t_hook_enable = false;
+    agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
 
     #define HOOK_FUNC(XX) \
         XX(sleep) \
@@ -70,13 +73,85 @@ extern "C"{
         HOOK_FUNC(XX);
     #undef XX
 
+    struct timer_info{
+        int cancelled = 0;
+    };
+
+    template<typename OriginFun, typename... Args>
+    static ssize_t do_io(int fd, OriginFun fun, const char* hook_fun_name, uint32_t event, int timeout_so, Args&&... args){
+        if(!agent::t_hook_enable){
+            return fun(fd,std::forward<Args>(args)...);
+        }
+
+        agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
+        if(!ctx){
+            return fun(fd, std::forward<Args>(args)...);
+        }
+
+        if(ctx -> isClose()){
+            errno = EBADF;
+            return -1;
+        }
+
+        if(!ctx -> isSocket() || ctx -> getUserNonblock()){
+            return fun(fd, std::forward<Args>(args)...);
+        }
+
+        uint64_t to = ctx -> getTimeout(timeout_so);
+        std::shared_ptr<timer_info> tinfo(new timer_info);
+
+    retry:
+        ssize_t n = fun(fd, std::forward<Args>(args)...);
+        while(n == -1 && errno == EINTR){
+            n = fun(fd, std::forward<Args>(args)...);
+        }
+        if(n == -1 && errno == EAGAIN){
+            agent::IOManager* iom = agent::IOManager::GetThis();
+            agent::Timer::ptr timer;
+            std::weak_ptr<timer_info> winfo(tinfo);
+
+            if(to != (uint64_t)-1){
+                timer = iom -> addConditionTimer(to, [winfo, fd, iom, event](){
+                    auto t = winfo.lock();
+                    if(!t || t -> cancelled){
+                        return ;
+                    }
+                    t -> cancelled = ETIMEDOUT;
+                    iom -> cancelEvent(fd, (agent::IOManager::EventType)(event));
+                }, winfo);
+            }
+
+            int rt = iom -> addTimer(fd, (agent::IOManager::EventType)(event));
+            if(rt){
+                AGENT_LOG_ERROR(g_logger) <<  hook_fun_name << " addEvent(" << fd << ", " << event << ")";
+                if(timer){
+                    timer -> cancel();
+                }
+                return -1;
+            }else{
+                agent::Coroutine::YieldToHold();
+                if(timer){
+                    timer -> cancel();
+                }
+                if(tinfo -> cancelled){
+                    errno = tinfo -> cancelled;
+                    return -1;
+                }
+
+                goto retry;
+            }
+        }
+
+        return n;
+    }
+
     unsigned int sleep(unsigned int seconds){
         if(!agent::t_hook_enable){
             return sleep_f(seconds);
         }
         agent::Coroutine::ptr coroutine = agent::Coroutine::GetThis();
         agent::IOManager* iom = agent::IOManager::GetThis();
-        iom -> addTimer(seconds, [&iom, &coroutine](){
+        iom -> addTimer(seconds * 1000, [&iom, &coroutine](){
             iom -> schedule(coroutine);
         });
         agent::Coroutine::YieldToHold();
