@@ -309,7 +309,8 @@ namespace agent{
             int rt = 0;
             do{
                 static const int MAX_TIMEOUT = 5000;
-                if(next_timeout != ~0ull){
+                
+                if(next_timeout != ~0ull && next_timeout > 0){
                     next_timeout = (int)next_timeout > MAX_TIMEOUT? MAX_TIMEOUT: next_timeout; 
                 }else{
                     next_timeout = MAX_TIMEOUT;
@@ -324,6 +325,7 @@ namespace agent{
             }while(true);
 
             std::vector<std::function<void()>> cbs;
+            
             listExpiredCb(cbs);
             if(!cbs.empty()){
                 schedule(cbs.begin(), cbs.end());

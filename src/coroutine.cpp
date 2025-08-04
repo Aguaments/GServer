@@ -187,7 +187,6 @@ namespace agent{
     // 协程切换到后台，设置hold状态
     void Coroutine::YieldToHold()
     {
-        AGENT_LOG_DEBUG(g_logger) << "[Start yieldToHold]: Current coroutine name = " << this -> m_name;
         Coroutine::ptr cur = GetThis();
         cur -> m_state = State::HOLD;
         cur -> swapOut();

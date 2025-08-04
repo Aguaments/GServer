@@ -32,14 +32,16 @@ set(AGENT_LIB_SRC
     src/coroutine.cpp
     src/scheduler.cpp
     src/iomanager.cpp
-    src/timer.cpp)
+    src/timer.cpp
+    src/hook.cpp)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})
 
 set(LIB_LIB
     agent
     pthread
-    yaml-cpp)
+    yaml-cpp
+    dl)
 
 # add_executable(test_thread test/test_thread.cpp)
 # target_link_libraries(test_thread ${LIB_LIB})
@@ -56,11 +58,14 @@ set(LIB_LIB
 # add_executable(test_scheduler test/test_scheduler.cpp)
 # target_link_libraries(test_scheduler ${LIB_LIB})
 
-add_executable(test_iomanager test/test_iomanager.cpp)
-target_link_libraries(test_iomanager ${LIB_LIB})
+# add_executable(test_iomanager test/test_iomanager.cpp)
+# target_link_libraries(test_iomanager ${LIB_LIB})
 
-add_executable(test_iomanager2 test/test_iomanager2.cpp)
-target_link_libraries(test_iomanager2 ${LIB_LIB})
+# add_executable(test_iomanager2 test/test_iomanager2.cpp)
+# target_link_libraries(test_iomanager2 ${LIB_LIB})
+
+add_executable(test_hook test/test_hook.cpp)
+target_link_libraries(test_hook ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

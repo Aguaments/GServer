@@ -55,9 +55,12 @@ int main()
     // iom.schedule(&test);
     // iom.schedule(&test_coroutine);
     agent::IOManager iom(2, false, "test", true);
-    iom.addTimer(500, [](){
+    iom.addTimer(5000, [](){
         AGENT_LOG_INFO(g_logger) << "timer....";
     }, true);
+    // iom.addTimer(5000, [](){
+    //     AGENT_LOG_INFO(g_logger) << "timer2....";
+    // }, true);
     iom.schedule(test);
     // sleep(10000);
     return 0;

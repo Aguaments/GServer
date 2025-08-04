@@ -3,6 +3,7 @@
 #include "scheduler.h"
 #include "utils.h"
 #include "log.h"
+#include "hook.h"
 
 namespace agent
 {
@@ -45,6 +46,8 @@ namespace agent
     {
         while(!m_stopping)
         {
+            AGENT_LOG_INFO(g_logger) << "[Stop] "<< "{Active Coroutine counts: " << m_activeCoroutineCount
+                                 << "} {Task Number: " << m_coroutines.size() << "}";
             sleep(10);
         }
         
@@ -97,13 +100,12 @@ namespace agent
         for(auto& i : thrs) {
             i-> join();
         }
-        AGENT_LOG_INFO(g_logger) << "[Stop] "<< "{Active Coroutine counts: " << m_activeCoroutineCount
-                                 << "} {Task Number: " << m_coroutines.size() << "}";
     }
 
     void Scheduler::run()
     {
         AGENT_LOG_INFO(g_logger) << "[Run] Scheduler Main loop";
+        set_hook_enable(true);
         setThis();
         if(Utils::getThreadId() != m_mainThreadId)
         {

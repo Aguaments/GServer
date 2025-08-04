@@ -1,8 +1,12 @@
 #include "timer.h"
 
 #include "utils.h"
+#include "log.h"
 
 namespace agent{
+
+    static Logger::ptr g_logger = AGENT_LOG_ROOT();
+
     bool Timer::Comparator::operator()(const Timer::ptr& lhs, const Timer::ptr& rhs) const{
         if(!lhs && !rhs) {
             return false;
@@ -138,7 +142,10 @@ namespace agent{
         RWMutexType::WriteLock lock(m_mutex);
 
         bool rollover = detectClockRoller(now_ms);
-        if(!rollover && ((*m_timers.begin())->m_next == now_ms)){
+
+        if(!rollover && ((*m_timers.begin())->m_next > now_ms)){
+
+            AGENT_LOG_ERROR(g_logger) << "[Timer] Timer is not trigger | timer.next" << (*m_timers.begin())->m_next;
             return;
         }
 
@@ -151,12 +158,12 @@ namespace agent{
 
         expired.insert(expired.begin(), m_timers.begin(), it);
         m_timers.erase(m_timers.begin(), it);
-        cbs.reserve(expired.size());
+        cbs.reserve(expired.size()); // 重置预留的内存空间，不创建元素
 
         for(auto& timer: expired){
             cbs.push_back(timer -> m_cb);
             if(timer -> m_recuring){
-                timer -> m_next = now_ms + timer -> m_ms;
+                timer -> m_next += timer -> m_ms;
                 m_timers.insert(timer);
             }else{
                 timer -> m_cb = nullptr;
