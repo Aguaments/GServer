@@ -386,7 +386,7 @@ namespace agent{
             auto raw_ptr = cur.get();
             cur.reset();
 
-            raw_ptr -> swapOut();
+            raw_ptr -> YieldToHold();
         }
         AGENT_LOG_DEBUG(g_logger) << "[IOMANAGER IDLE Coroutine] end";
     }

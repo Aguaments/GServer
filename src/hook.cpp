@@ -9,6 +9,7 @@
 #include "iomanager.h"
 #include "log.h"
 #include "fd_manager.h"
+#include "config.h"
 
 
 extern agent::Logger::ptr g_logger;
@@ -18,6 +19,8 @@ static agent::ConfigVar<int>::ptr g_tcp_connect_timeout = agent::Config::Lookup(
 namespace agent{
     
     static thread_local bool t_hook_enable = false;
+
+    static uint64_t s_connect_timeout = -1;
 
     #define HOOK_FUNC(XX) \
         XX(sleep) \
@@ -57,6 +60,12 @@ namespace agent{
     struct HookIniter{
         HookIniter(){
             hook_init();
+            s_connect_timeout = g_tcp_connect_timeout -> getValue();
+            g_tcp_connect_timeout -> addListener(999, [](const int& old_value, const int& new_value){
+                AGENT_LOG_INFO(g_logger) << "tcp connect timeout changed from " 
+                    << old_value << " to " << new_value; 
+                s_connect_timeout = new_value;
+            });
         }
     };
 
@@ -276,7 +285,7 @@ extern "C"{
     }
 
     int connect(int sockfd, const struct sockaddr* addr, socklen_t addr_len){
-        return connect_f(sockfd, addr, addr_len);
+        return connect_with_timeout(sockfd, addr, addr_len, g_tcp_connect_timeout -> getValue());
     }
 
     int accept(int sockfd, struct sockaddr * addr, socklen_t *addrlen){
@@ -413,6 +422,8 @@ extern "C"{
             case F_SETOWN_EX:
                 {
                     struct f_owner_ex* arg = va_arg(va, struct f_owner_ex*);
+                    va_end(va);
+                    return fcntl_f(fd, cmd, arg);
                 }
                 break;
             default:

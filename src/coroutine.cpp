@@ -121,6 +121,7 @@ namespace agent{
     {   
         //AGENT_LOG_DEBUG(g_logger) << "[Start swapin]: Coroutine name = " << this -> m_name;
         SetThis(this);
+        AGENT_LOG_DEBUG(g_logger) << int(m_state) << " name : " << this -> getName();
         AGENT_ASSERT(m_state != State::EXEC);
         m_state = State::EXEC;
 
@@ -188,7 +189,7 @@ namespace agent{
     void Coroutine::YieldToHold()
     {
         Coroutine::ptr cur = GetThis();
-        // cur -> m_state = State::HOLD;
+        cur -> m_state = State::HOLD;
         cur -> swapOut();
     }
 

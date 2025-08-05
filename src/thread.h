@@ -12,9 +12,11 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include "noncopyable.h"
+
 namespace agent{
 
-    class Semaphore
+    class Semaphore: Noncopyable
     {
     public:
         Semaphore(uint32_t count=0);
@@ -143,7 +145,7 @@ namespace agent{
         bool m_locked;
     };
 
-    class RWMutex
+    class RWMutex : Noncopyable
     {
     public:
         using ReadLock = ReadScopedLockImpl<RWMutex>;
@@ -176,7 +178,7 @@ namespace agent{
         pthread_rwlock_t m_lock;
     };
 
-    class NullRWMutex
+    class NullRWMutex : Noncopyable
     {
     public:
         using ReadLock = ReadScopedLockImpl<RWMutex>;
@@ -188,7 +190,7 @@ namespace agent{
         void unlock(){}
     };
 
-    class Mutex
+    class Mutex: Noncopyable
     {
     public:
         using Lock = ScopedLockImpl<Mutex>;
@@ -214,7 +216,7 @@ namespace agent{
         pthread_mutex_t m_mutex;
     };
 
-    class NullMutex
+    class NullMutex : Noncopyable
     {
     public:
         using Lock = ScopedLockImpl<NullMutex>;
@@ -224,7 +226,7 @@ namespace agent{
         void unlock(){}
     };
 
-    class Spinlock
+    class Spinlock : Noncopyable
     {
     public:
         using Lock = ScopedLockImpl<Spinlock>;
@@ -253,7 +255,7 @@ namespace agent{
         pthread_spinlock_t m_spinlock;
     };
 
-    class CASLock
+    class CASLock : Noncopyable
     {
     public:
         using Lock = ScopedLockImpl<CASLock>;
