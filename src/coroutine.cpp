@@ -188,7 +188,7 @@ namespace agent{
     void Coroutine::YieldToHold()
     {
         Coroutine::ptr cur = GetThis();
-        cur -> m_state = State::HOLD;
+        // cur -> m_state = State::HOLD;
         cur -> swapOut();
     }
 

@@ -2,6 +2,8 @@
 
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "hook.h"
 
@@ -49,23 +51,52 @@ namespace agent{
         return m_isInit;
     }
 
-    void setTimeout(int type, uint64_t v){
-
+    void FdCtx::setTimeout(int type, uint64_t v){
+        if(type == SO_RCVTIMEO){
+            m_recvTimeout = v;
+        }else{
+            m_sendTimeout = v;
+        }
     }
 
-    uint64_t getTimeout(int type){
-
+    uint64_t FdCtx::getTimeout(int type){
+        if(type == SO_RCVTIMEO){
+            return m_recvTimeout;
+        }else{
+            return m_sendTimeout;
+        }
     }
 
     FdManager::FdManager(){
         m_datas.resize(64);
     }
 
-    FdCtx::ptr get(int fd, bool autp_create = false){
+    FdCtx::ptr FdManager::get(int fd, bool auto_create){
+        RWMutexType::ReadLock lock(m_mutex);
+        if((int)m_datas.size() <= fd){
+            if(auto_create == false){
+                return nullptr;
+            }else{
+                m_datas.resize(fd * 1.5);
+            }
+        }else{
+            if(m_datas[fd]){
+                return m_datas[fd];
+            }
+        }
+        lock.unlock();
 
+        RWMutexType::WriteLock lock2(m_mutex);
+        FdCtx::ptr ctx(new FdCtx(fd));
+        m_datas[fd] = ctx;
+        return ctx;
     }
 
-    void del(int fd){
-
+    void FdManager::del(int fd){
+        RWMutexType::WriteLock lock(m_mutex);
+        if((int)m_datas.size() <= fd){
+            return;
+        }
+        m_datas[fd].reset();
     }
 }

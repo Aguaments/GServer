@@ -33,6 +33,7 @@ set(AGENT_LIB_SRC
     src/scheduler.cpp
     src/iomanager.cpp
     src/timer.cpp
+    src/fd_manager.cpp
     src/hook.cpp)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})

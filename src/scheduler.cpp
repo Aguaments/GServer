@@ -151,21 +151,23 @@ namespace agent
                 }
             }
 
-            if(ct.coroutine && (ct.coroutine -> getState() != Coroutine::State::TERM
-                            &&ct.coroutine -> getState() != Coroutine::State::EXCEPT))
+            if(ct.coroutine && (
+                    ct.coroutine -> getState() != Coroutine::State::TERM 
+                    && ct.coroutine -> getState() != Coroutine::State::EXCEPT)
+            )
             {
                 ct.coroutine -> swapIn();
                 --m_activeCoroutineCount;
 
-                if(ct.coroutine -> getState() == Coroutine::State::READY)
+                if(ct.coroutine -> getState() == Coroutine::State::HOLD)
                 {
                     schedule(ct.coroutine);
                 }
-                else if(ct.coroutine -> getState() != Coroutine::State::TERM
-                            && ct.coroutine -> getState() != Coroutine::State::EXCEPT)
-                {
-                    ct.coroutine -> m_state = Coroutine::State::HOLD;
-                }
+                // else if(ct.coroutine -> getState() != Coroutine::State::TERM
+                //             && ct.coroutine -> getState() != Coroutine::State::EXCEPT)
+                // {
+                //     ct.coroutine -> m_state = Coroutine::State::HOLD;
+                // }
                 ct.reset();
             }
             else if(ct.cb)
@@ -181,21 +183,23 @@ namespace agent
                 ct.reset();
                 cb_coroutine -> swapIn();
                 --m_activeCoroutineCount;
-                if(cb_coroutine -> getState() == Coroutine::State::READY)
+                if(cb_coroutine -> getState() == Coroutine::State::HOLD)
                 {
                     schedule(cb_coroutine);
                     cb_coroutine.reset();
                 }
-                else if(cb_coroutine -> getState() == Coroutine::State::EXCEPT
-                                    || cb_coroutine -> getState() == Coroutine::State::TERM)
-                {
-                    cb_coroutine -> reset(nullptr);
-                }
-                else
-                {
-                    cb_coroutine -> m_state = Coroutine::State::HOLD;
-                    cb_coroutine.reset();
-                }
+                // else if(cb_coroutine -> getState() == Coroutine::State::EXCEPT
+                //                     || cb_coroutine -> getState() == Coroutine::State::TERM)
+                // {
+                //     cb_coroutine -> reset(nullptr);
+                // }
+                // else
+                // {
+                //     cb_coroutine -> m_state = Coroutine::State::HOLD;
+                //     cb_coroutine.reset();
+                // }
+
+                cb_coroutine.reset();
             }
             else
             {
@@ -208,11 +212,11 @@ namespace agent
                 ++ m_activeCoroutineCount;
                 idle_coroutine -> swapIn();
                 --m_activeCoroutineCount;
-                if(idle_coroutine -> getState() != Coroutine::State::TERM 
-                    && idle_coroutine -> getState() != Coroutine::State::EXCEPT)
-                {
-                    idle_coroutine -> m_state = Coroutine::State::HOLD;
-                }
+                // if(idle_coroutine -> getState() != Coroutine::State::TERM 
+                //     && idle_coroutine -> getState() != Coroutine::State::EXCEPT)
+                // {
+                //     idle_coroutine -> m_state = Coroutine::State::HOLD;
+                // }
             }
         }
     }

@@ -2,8 +2,9 @@
 
 #include <memory>
 #include "thread.h"
-#include "iomanager.h"
+#include "thread.h"
 #include "singleton.h"
+#include "iomanager.h"
 
 namespace agent{
     class FdCtx: public std::enable_shared_from_this<FdCtx>{
@@ -37,12 +38,14 @@ namespace agent{
 
         uint64_t m_recvTimeout;
         uint64_t m_sendTimeout;
-        agent::IOManager* m_iomanager;
+        IOManager* m_iomanager;
     };
 
     class FdManager{
     public:
         using RWMutexType = RWMutex;
+
+        FdManager();
 
         FdCtx::ptr get(int fd, bool auto_create = false);
         void del(int fd);
@@ -51,4 +54,7 @@ namespace agent{
         RWMutexType m_mutex;
         std::vector<FdCtx::ptr> m_datas;
     };
+
+
+    using FdMgr = Singleton<FdManager>;
 }

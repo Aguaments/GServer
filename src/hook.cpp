@@ -3,17 +3,21 @@
 #include <functional>
 
 #include <dlfcn.h>
+#include <stdarg.h>
 
 #include "coroutine.h"
 #include "iomanager.h"
-#include "scheduler.h"
 #include "log.h"
 #include "fd_manager.h"
+
+
+extern agent::Logger::ptr g_logger;
+
+static agent::ConfigVar<int>::ptr g_tcp_connect_timeout = agent::Config::Lookup("tcp.connect.timeout", 5000, "tcp connect timeout");
 
 namespace agent{
     
     static thread_local bool t_hook_enable = false;
-    agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
 
     #define HOOK_FUNC(XX) \
         XX(sleep) \
@@ -30,6 +34,7 @@ namespace agent{
         XX(recvfrom) \
         XX(recvmsg) \
         XX(write) \
+        XX(writev) \
         XX(send) \
         XX(sendto) \
         XX(sendmsg) \
@@ -38,7 +43,6 @@ namespace agent{
         XX(ioctl) \
         XX(getsockopt) \
         XX(setsockopt) 
-
 
     void hook_init(){
         static bool is_inited = false;
@@ -56,6 +60,8 @@ namespace agent{
         }
     };
 
+    static HookIniter s_hook_initer;
+
     bool is_hook_enable(bool flag){
         return t_hook_enable;
     }
@@ -63,6 +69,79 @@ namespace agent{
     void set_hook_enable(bool flag){
         t_hook_enable = flag;
     }
+}
+
+
+struct timer_info{
+    int cancelled = 0;
+};
+
+template<typename OriginFun, typename... Args>
+static ssize_t do_io(int fd, OriginFun fun, const char* hook_fun_name, uint32_t event, int timeout_so, Args&&... args){
+    if(!agent::t_hook_enable){
+        return fun(fd,std::forward<Args>(args)...);
+    }
+
+    agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
+    if(!ctx){
+        return fun(fd, std::forward<Args>(args)...);
+    }
+
+    if(ctx -> isClose()){
+        errno = EBADF;
+        return -1;
+    }
+
+    if(!ctx -> isSocket() || ctx -> getUserNonblock()){
+        return fun(fd, std::forward<Args>(args)...);
+    }
+
+    uint64_t to = ctx -> getTimeout(timeout_so);
+    std::shared_ptr<timer_info> tinfo(new timer_info);
+
+retry:
+    ssize_t n = fun(fd, std::forward<Args>(args)...);
+    while(n == -1 && errno == EINTR){
+        n = fun(fd, std::forward<Args>(args)...);
+    }
+    if(n == -1 && errno == EAGAIN){
+        agent::IOManager* iom = agent::IOManager::GetThis();
+        agent::Timer::ptr timer;
+        std::weak_ptr<timer_info> winfo(tinfo);
+
+        if(to != (uint64_t)-1){
+            timer = iom -> addConditionTimer(to, [winfo, fd, iom, event](){
+                auto t = winfo.lock();
+                if(!t || t -> cancelled){
+                    return ;
+                }
+                t -> cancelled = ETIMEDOUT;
+                iom -> cancelEvent(fd, (agent::IOManager::EventType)(event));
+            }, winfo);
+        }
+
+        int rt = iom -> addEvent(fd, (agent::IOManager::EventType)(event));
+        if(!rt){
+            AGENT_LOG_ERROR(g_logger) <<  hook_fun_name << " addEvent(" << fd << ", " << event << ")";
+            if(timer){
+                timer -> cancel();
+            }
+            return -1;
+        }else{
+            agent::Coroutine::YieldToHold();
+            if(timer){
+                timer -> cancel();
+            }
+            if(tinfo -> cancelled){
+                errno = tinfo -> cancelled;
+                return -1;
+            }
+
+            goto retry;
+        }
+    }
+
+    return n;
 }
 
 #ifdef __cplusplus
@@ -73,87 +152,16 @@ extern "C"{
         HOOK_FUNC(XX);
     #undef XX
 
-    struct timer_info{
-        int cancelled = 0;
-    };
-
-    template<typename OriginFun, typename... Args>
-    static ssize_t do_io(int fd, OriginFun fun, const char* hook_fun_name, uint32_t event, int timeout_so, Args&&... args){
-        if(!agent::t_hook_enable){
-            return fun(fd,std::forward<Args>(args)...);
-        }
-
-        agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
-        if(!ctx){
-            return fun(fd, std::forward<Args>(args)...);
-        }
-
-        if(ctx -> isClose()){
-            errno = EBADF;
-            return -1;
-        }
-
-        if(!ctx -> isSocket() || ctx -> getUserNonblock()){
-            return fun(fd, std::forward<Args>(args)...);
-        }
-
-        uint64_t to = ctx -> getTimeout(timeout_so);
-        std::shared_ptr<timer_info> tinfo(new timer_info);
-
-    retry:
-        ssize_t n = fun(fd, std::forward<Args>(args)...);
-        while(n == -1 && errno == EINTR){
-            n = fun(fd, std::forward<Args>(args)...);
-        }
-        if(n == -1 && errno == EAGAIN){
-            agent::IOManager* iom = agent::IOManager::GetThis();
-            agent::Timer::ptr timer;
-            std::weak_ptr<timer_info> winfo(tinfo);
-
-            if(to != (uint64_t)-1){
-                timer = iom -> addConditionTimer(to, [winfo, fd, iom, event](){
-                    auto t = winfo.lock();
-                    if(!t || t -> cancelled){
-                        return ;
-                    }
-                    t -> cancelled = ETIMEDOUT;
-                    iom -> cancelEvent(fd, (agent::IOManager::EventType)(event));
-                }, winfo);
-            }
-
-            int rt = iom -> addTimer(fd, (agent::IOManager::EventType)(event));
-            if(rt){
-                AGENT_LOG_ERROR(g_logger) <<  hook_fun_name << " addEvent(" << fd << ", " << event << ")";
-                if(timer){
-                    timer -> cancel();
-                }
-                return -1;
-            }else{
-                agent::Coroutine::YieldToHold();
-                if(timer){
-                    timer -> cancel();
-                }
-                if(tinfo -> cancelled){
-                    errno = tinfo -> cancelled;
-                    return -1;
-                }
-
-                goto retry;
-            }
-        }
-
-        return n;
-    }
-
     unsigned int sleep(unsigned int seconds){
         if(!agent::t_hook_enable){
             return sleep_f(seconds);
         }
         agent::Coroutine::ptr coroutine = agent::Coroutine::GetThis();
         agent::IOManager* iom = agent::IOManager::GetThis();
-        iom -> addTimer(seconds * 1000, [&iom, &coroutine](){
-            iom -> schedule(coroutine);
-        });
+        iom -> addTimer(seconds * 1000, std::bind(
+            (void(agent::Scheduler::*)(agent::Coroutine::ptr, int thread))
+            &agent::IOManager::schedule, iom, coroutine, -1)
+        );
         agent::Coroutine::YieldToHold();
         return 0;
     }
@@ -175,7 +183,7 @@ extern "C"{
         if(!agent::t_hook_enable){
             return nanosleep_f(req, rem);
         }
-        int timeout_ms = req -> tv_sec + req -> tv_nsec / 1000 / 1000;
+        int timeout_ms = req -> tv_sec * 1000 + req -> tv_nsec / 1000 / 1000;
         agent::Coroutine::ptr coroutine = agent::Coroutine::GetThis();
         agent::IOManager* iom = agent::IOManager::GetThis();
 
@@ -186,12 +194,270 @@ extern "C"{
         return 0;
     }
 
+    int socket(int domain, int type, int protocol){
+        if(!agent::t_hook_enable){
+            return socket_f(domain, type, protocol);
+        }
+        int fd = socket_f(domain, type, protocol);
+        if(-1 == fd) {
+            return fd;
+        }
+        agent::FdMgr::getInstance() -> get(fd, true);
+        return fd;
+    }
+
+    int connect_with_timeout(int fd, const struct sockaddr* addr, socklen_t addrlen, uint64_t timeout_ms){
+        if(!agent::t_hook_enable){
+            return connect_f(fd, addr, addrlen);
+        }
+        agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
+        if(!ctx || ctx -> isClose()){
+            errno = EBADF;
+            return -1;
+        }
+        if(!ctx -> isSocket()){
+            return connect_f(fd, addr, addrlen);
+        }
+        if(ctx -> getUserNonblock()){
+            return connect_f(fd, addr, addrlen);
+        }
+
+        int n = connect(fd, addr, addrlen);
+        if(n == 0){
+            return 0;
+        }else if(n != -1 || errno != EINPROGRESS){
+            return n;
+        }
+
+        agent::IOManager* iom = agent::IOManager::GetThis();
+        agent::Timer::ptr timer;
+        std::shared_ptr<timer_info> tinfo(new timer_info);
+        std::weak_ptr<timer_info> winfo(tinfo);
+
+        if(timeout_ms != (uint64_t)-1){
+            timer = iom -> addConditionTimer(timeout_ms, [winfo, fd, iom](){
+                auto t = winfo.lock();
+                if(!t || t -> cancelled){
+                    return ;
+                }
+                t -> cancelled = ETIMEDOUT;
+                iom -> cancelEvent(fd, agent::IOManager::WRITE);
+            }, winfo);
+        }
+
+        int rt = iom -> addEvent(fd, agent::IOManager::WRITE);
+        if(rt == 0){
+            agent::Coroutine::YieldToHold();
+            if(timer){
+                timer -> cancel();
+            }
+            if(tinfo -> cancelled){
+                errno = tinfo -> cancelled;
+                return -1;
+            }
+        }else{
+            if(timer){
+                timer -> cancel();
+            }
+            AGENT_LOG_ERROR(g_logger) << "[Connect] connect addEvent(" << fd << ", WRITE) error";
+        }
+
+        int error = 0;
+         socklen_t len = sizeof(int);
+         if(-1 == getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len)){
+            return -1;
+         }  
+         if(!error){
+            return 0;
+         }else{
+            errno = error;
+            return -1;
+         }
+    }
+
+    int connect(int sockfd, const struct sockaddr* addr, socklen_t addr_len){
+        return connect_f(sockfd, addr, addr_len);
+    }
+
+    int accept(int sockfd, struct sockaddr * addr, socklen_t *addrlen){
+        int fd = do_io(sockfd, accept_f, "accept", agent::IOManager::READ, SO_RCVTIMEO, addr, addrlen);
+        if(fd >= 0){
+            agent::FdMgr::getInstance() -> get(fd, true);
+        }
+        return fd;
+    }
+
+    int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen){
+        return bind_f(sockfd, addr, addrlen);
+    }
+
+    int listen(int sockfd, int backlog){
+        return listen_f(sockfd, backlog);
+    }
+
+
+    ssize_t read(int fd, void* buf, size_t count){
+        return do_io(fd, read_f, "read", agent::IOManager::READ, SO_RCVTIMEO, buf, count);
+    }
+
+    ssize_t readv(int fd, const struct iovec* iov, int iovcnt){
+        return do_io(fd, readv_f, "readv", agent::IOManager::READ, SO_RCVTIMEO, iov, iovcnt);
+    }
+
+    ssize_t recv(int sockfd, void* buf, size_t len, int flags){
+        return do_io(sockfd, recv_f, "recv", agent::IOManager::READ, SO_RCVTIMEO, buf, len, flags);
+    }
+
+    ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen){
+        return do_io(sockfd, recvfrom_f, "recvfrom", agent::IOManager::READ, SO_RCVTIMEO, buf, len, flags, src_addr, addrlen);
+    }
+
+    ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags){
+        return do_io(sockfd, recvmsg_f, "recvmsg", agent::IOManager::READ, SO_RCVTIMEO, msg, flags);
+    }
+
+    ssize_t write(int fd, const void* buf, size_t count){
+        return do_io(fd, write_f, "write", agent::IOManager::WRITE, SO_SNDTIMEO, buf, count);
+    }
+
+    ssize_t writev(int fd, const struct iovec* iov, int iovcnt){
+        return do_io(fd, writev_f, "writev", agent::IOManager::WRITE, SO_SNDTIMEO, iov, iovcnt);
+    }
+
+    ssize_t send(int sockfd, const void* buf, size_t len, int flags){
+        return do_io(sockfd, send_f, "send", agent::IOManager::WRITE, SO_SNDTIMEO, buf, len, flags);
+    }
+
+    ssize_t sendto(int sockfd, const void* buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen){
+        return do_io(sockfd, sendto_f, "sendto", agent::IOManager::WRITE, SO_SNDTIMEO, buf, len, flags, dest_addr, addrlen);
+    }
+
+    ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags){
+        return do_io(sockfd, sendmsg_f, "sendmsg", agent::IOManager::WRITE, SO_SNDTIMEO, msg, flags);
+    }
+
+    int close(int fd){
+        if(!agent::t_hook_enable){
+            return close_f(fd);
+        }
+        agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
+        if(ctx){
+            auto iom = agent::IOManager::GetThis();
+            if(iom){
+                iom -> cancelAll(fd);
+            }
+            agent::FdMgr::getInstance() -> del(fd);
+        }
+        return close_f(fd);
+    }
+
+
+    int fcntl(int fd, int cmd, ...){
+        va_list va;
+        va_start(va, cmd);
+
+        switch(cmd){
+            case F_SETFL:
+                {
+                    int arg = va_arg(va, int);
+                    va_end(va);
+                    agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
+                    if(!ctx || ctx -> isClose() || !ctx -> isSocket()){
+                        return fcntl_f(fd, cmd, arg);
+                    }
+                    ctx -> setUserNonblock(arg & O_NONBLOCK);
+                    if(ctx -> getSysNonblock()){
+                        arg |= O_NONBLOCK;
+                    }else{
+                        arg &= ~O_NONBLOCK;
+                    }
+                    return fcntl_f(fd, cmd, arg);
+                }
+                break;
+            case F_DUPFD:
+            case F_DUPFD_CLOEXEC:
+            case F_SETFD:
+            
+            case F_SETOWN:
+            case F_SETSIG:
+            case F_SETLEASE:
+            case F_NOTIFY:
+            case F_SETPIPE_SZ:
+                {
+                    int arg = va_arg(va, int);
+                    va_end(va);
+                    return fcntl_f(fd, cmd, arg);
+                }
+                break;
+            case F_GETFD:
+            case F_GETFL:
+            case F_GETOWN:
+            case F_GETSIG:
+            case F_GETLEASE:
+            case F_GETPIPE_SZ:
+                {
+                    va_end(va);
+                    return fcntl_f(fd, cmd);
+                }
+                break;
+            case F_SETLK:
+            case F_SETLKW:
+            case F_GETLK:
+                {
+                    struct flock* arg = va_arg(va, struct flock*);
+                    va_end(va);
+                    return fcntl_f(fd, cmd, arg);
+                }
+                break;
+            case F_GETOWN_EX:
+            case F_SETOWN_EX:
+                {
+                    struct f_owner_ex* arg = va_arg(va, struct f_owner_ex*);
+                }
+                break;
+            default:
+                va_end(va);
+                return fcntl_f(fd, cmd);
+        }
+    }
+
+    int ioctl(int fd, unsigned long op, ...){
+        va_list va;
+        va_start(va, op);
+        void * arg = va_arg(va, void*);
+        va_end(va);
+
+        if(FIONBIO == op){
+            bool user_nonblock = !!*(int*)arg;
+            agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
+            if(!ctx || ctx -> isClose() || !ctx -> isSocket()){
+                return ioctl_f(fd, op, arg);
+            }
+            ctx -> setUserNonblock(user_nonblock);
+        }
+        return ioctl_f(fd, op, arg);
+    }
+
+   int getsockopt(int sockfd, int level, int optname, void* optval, socklen_t* optlen){
+        return 0;
+   }
+    
+    int setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t optlen){
+        if(!agent::t_hook_enable){
+            return setsockopt_f(sockfd, level, optname, optval, optlen);
+        }
+        if(level == SOL_SOCKET){
+            if(optname == SO_RCVTIMEO || SO_SNDTIMEO){
+                agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(sockfd);
+                if(ctx){
+                    const timeval* v = (const timeval*)optval;
+                    ctx -> setTimeout(optname, v -> tv_sec * 1000 + v -> tv_usec / 1000);
+                }
+            }
+        }
+        return setsockopt_f(sockfd, level, optname, optval, optlen);
+    }
+
 #ifdef __cplusplus
 }
 #endif
-
-using sleep_func = unsigned int (*)(unsigned int secondes);
-extern sleep_func sleep_f;
-
-using usleep_func = int (*)(useconds_t usec);
-extern usleep_func usleep_f;

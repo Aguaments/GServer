@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <time.h>
 #include <sys/uio.h>
 
 namespace agent{
@@ -86,7 +87,7 @@ extern "C"{
     using fcntl_func = int (*)(int fd, int cmd, ...);
     extern fcntl_func fcntl_f;
 
-    using ioctl_func = int (*)(int fd, int request, ...);
+    using ioctl_func = int (*)(int fd,  unsigned long op, ...);
     extern ioctl_func ioctl_f;
 
     using getsockopt_func = int (*)(int sockfd, int level, int optname, void* optval, socklen_t* optlen);

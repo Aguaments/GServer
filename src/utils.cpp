@@ -24,13 +24,13 @@ namespace agent{
     uint64_t Utils::GetCurrentMS(){
         struct timeval tv;
         gettimeofday(&tv, NULL);
-        return tv.tv_sec * 1000ul  + tv.tv_usec;
+        return tv.tv_sec * 1000ul  + tv.tv_usec / 1000;
     }
     
     uint64_t Utils::GetCurrentUS(){
         struct timeval tv;
         gettimeofday(&tv, NULL);
-        return tv.tv_sec * 1000ul * 1000ul  + tv.tv_usec / 1000ul;
+        return tv.tv_sec * 1000ul * 1000ul  + tv.tv_usec;
     }
 
     void Utils::Backtrace(std::vector<std::string>& bt, int size, int skip)
