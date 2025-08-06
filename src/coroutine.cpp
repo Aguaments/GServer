@@ -121,7 +121,7 @@ namespace agent{
     {   
         //AGENT_LOG_DEBUG(g_logger) << "[Start swapin]: Coroutine name = " << this -> m_name;
         SetThis(this);
-        AGENT_LOG_DEBUG(g_logger) << int(m_state) << " name : " << this -> getName();
+        // AGENT_LOG_DEBUG(g_logger) << int(m_state) << " name : " << this -> getName();
         AGENT_ASSERT(m_state != State::EXEC);
         m_state = State::EXEC;
 

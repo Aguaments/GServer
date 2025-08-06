@@ -7,6 +7,14 @@
 ### 待测试的系统函数
 - sleep
 - usleep
+- socket相关 socket connect bind accept
+- io相关 read write send recv
+- fd相关 fcntl ioctl
+
+## socket地址
+- ipv4 address
+- ipv6 address
+- unix address
 
 
 ## 基础知识
@@ -18,3 +26,4 @@ man 3 xxx # 查询库函数
 ```
 
 2. 全局变量会在main函数之间进行初始化
+

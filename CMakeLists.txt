@@ -34,7 +34,8 @@ set(AGENT_LIB_SRC
     src/iomanager.cpp
     src/timer.cpp
     src/fd_manager.cpp
-    src/hook.cpp)
+    src/hook.cpp
+    src/address.cpp)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})
 
@@ -65,8 +66,11 @@ set(LIB_LIB
 # add_executable(test_iomanager2 test/test_iomanager2.cpp)
 # target_link_libraries(test_iomanager2 ${LIB_LIB})
 
-add_executable(test_hook test/test_hook.cpp)
-target_link_libraries(test_hook ${LIB_LIB})
+# add_executable(test_hook test/test_hook.cpp)
+# target_link_libraries(test_hook ${LIB_LIB})
+
+add_executable(test_address test/test_address.cpp)
+target_link_libraries(test_address ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
