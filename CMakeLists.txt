@@ -35,7 +35,7 @@ set(AGENT_LIB_SRC
     src/timer.cpp
     src/fd_manager.cpp
     src/hook.cpp
-    src/address.cpp)
+    src/bytearray.cpp)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})
 

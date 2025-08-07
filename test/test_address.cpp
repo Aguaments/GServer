@@ -39,6 +39,6 @@ void to_String(){
 }
 
 int main(){
-    std::cout << std::hex << (-1 << (sizeof(uint32_t) * 8 - 11)) << std::endl;
+    std::cout << std::hex << (1 << (sizeof(uint32_t) * 8 - 11)) << std::endl;
     return 0;
 }
