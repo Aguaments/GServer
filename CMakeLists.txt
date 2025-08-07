@@ -6,6 +6,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O3 -g -std=c++14 -Wall -Wno-deprecated -Werror -Wno-unused-funtcion")
 
 include_directories(src)
+include_directories(src/http)
 
 # set(LOG_LIB_SRC src/log.cpp)
 # set(UTILS_LIB_SRC src/utils.cpp)
@@ -35,7 +36,8 @@ set(AGENT_LIB_SRC
     src/timer.cpp
     src/fd_manager.cpp
     src/hook.cpp
-    src/bytearray.cpp)
+    src/bytearray.cpp
+    src/http/http.cpp)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})
 
@@ -69,8 +71,11 @@ set(LIB_LIB
 # add_executable(test_hook test/test_hook.cpp)
 # target_link_libraries(test_hook ${LIB_LIB})
 
-add_executable(test_address test/test_address.cpp)
-target_link_libraries(test_address ${LIB_LIB})
+# add_executable(test_address test/test_address.cpp)
+# target_link_libraries(test_address ${LIB_LIB})
+
+add_executable(test_http test/test_http.cpp)
+target_link_libraries(test_http ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

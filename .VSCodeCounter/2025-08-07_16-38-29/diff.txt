@@ -1,0 +1,57 @@
+Date : 2025-08-07 16:38:29
+Directory : /home/ggy/myProject
+Total : 27 files,  2084 codes, 56 comments, 432 blanks, all 2572 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| C++      |         23 |      2,029 |         56 |        418 |      2,503 |
+| Markdown |          3 |         47 |          0 |         12 |         59 |
+| CMake    |          1 |          8 |          0 |          2 |         10 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------+------------+------------+------------+------------+------------+
+| path                                         | files      | code       | comment    | blank      | total      |
++----------------------------------------------+------------+------------+------------+------------+------------+
+| .                                            |         27 |      2,084 |         56 |        432 |      2,572 |
+| . (Files)                                    |          1 |          8 |          0 |          2 |         10 |
+| doc                                          |          3 |         47 |          0 |         12 |         59 |
+| src                                          |         20 |      1,934 |         48 |        400 |      2,382 |
+| test                                         |          3 |         95 |          8 |         18 |        121 |
++----------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                     | language | code       | comment    | blank      | total      |
++----------------------------------------------+----------+------------+------------+------------+------------+
+| /home/ggy/myProject/CMakeLists.txt           | CMake    |          8 |          0 |          2 |         10 |
+| /home/ggy/myProject/doc/IOSocket.md          | Markdown |         22 |          0 |          8 |         30 |
+| /home/ggy/myProject/doc/serialization.md     | Markdown |          1 |          0 |          1 |          2 |
+| /home/ggy/myProject/doc/timer.md             | Markdown |         24 |          0 |          3 |         27 |
+| /home/ggy/myProject/src/address.cpp          | C++      |        323 |          6 |         63 |        392 |
+| /home/ggy/myProject/src/address.h            | C++      |         94 |          0 |         30 |        124 |
+| /home/ggy/myProject/src/bytearray.cpp        | C++      |        559 |          0 |        100 |        659 |
+| /home/ggy/myProject/src/bytearray.h          | C++      |         89 |          0 |         19 |        108 |
+| /home/ggy/myProject/src/coroutine.cpp        | C++      |         -1 |          1 |          0 |          0 |
+| /home/ggy/myProject/src/endian.hpp           | C++      |         75 |         16 |         20 |        111 |
+| /home/ggy/myProject/src/fd_manager.cpp       | C++      |         87 |          0 |         15 |        102 |
+| /home/ggy/myProject/src/fd_manager.h         | C++      |         46 |          0 |         14 |         60 |
+| /home/ggy/myProject/src/hook.cpp             | C++      |        409 |          0 |         65 |        474 |
+| /home/ggy/myProject/src/hook.h               | C++      |         68 |          5 |         29 |        102 |
+| /home/ggy/myProject/src/iomanager.cpp        | C++      |         20 |          0 |          5 |         25 |
+| /home/ggy/myProject/src/iomanager.h          | C++      |          3 |          0 |          2 |          5 |
+| /home/ggy/myProject/src/noncopyable.h        | C++      |         10 |          0 |          1 |         11 |
+| /home/ggy/myProject/src/scheduler.cpp        | C++      |        -13 |         20 |          1 |          8 |
+| /home/ggy/myProject/src/scheduler.h          | C++      |          1 |          0 |          0 |          1 |
+| /home/ggy/myProject/src/thread.h             | C++      |          1 |          0 |          1 |          2 |
+| /home/ggy/myProject/src/timer.cpp            | C++      |        142 |          0 |         26 |        168 |
+| /home/ggy/myProject/src/timer.h              | C++      |         15 |          0 |          7 |         22 |
+| /home/ggy/myProject/src/utils.cpp            | C++      |          4 |          0 |          1 |          5 |
+| /home/ggy/myProject/src/utils.h              | C++      |          2 |          0 |          1 |          3 |
+| /home/ggy/myProject/test/test_address.cpp    | C++      |         39 |          0 |          5 |         44 |
+| /home/ggy/myProject/test/test_hook.cpp       | C++      |         49 |          1 |         12 |         62 |
+| /home/ggy/myProject/test/test_iomanager2.cpp | C++      |          7 |          7 |          1 |         15 |
+| Total                                        |          |      2,084 |         56 |        432 |      2,572 |
++----------------------------------------------+----------+------------+------------+------------+------------+

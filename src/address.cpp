@@ -23,17 +23,17 @@ namespace agent {
 
         Address::ptr result;
         // switch(m_addr)
-        switch(addr->sa_family) {
-            case AF_INET:
-                result.reset(new IPv4Address(*(const sockaddr_in*)addr));
-                break;
-            case AF_INET6:
-                result.reset(new IPv6Address(*(const sockaddr_in6*)addr));
-                break;
-            default:
-                result.reset(new UnknowAddress(*addr));
-                break;
-        }
+        // switch(addr->sa_family) {
+        //     case AF_INET:
+        //         result.reset(new IPv4Address(*(const sockaddr_in*)addr));
+        //         break;
+        //     case AF_INET6:
+        //         result.reset(new IPv6Address(*(const sockaddr_in6*)addr));
+        //         break;
+        //     default:
+        //         result.reset(new UnknowAddress(*addr));
+        //         break;
+        // }
         return result;
     }
 
