@@ -221,6 +221,11 @@ namespace agent{
             bool hasCookie(const std::string& key, std::string* val = nullptr);
 
             template<class T>
+            T getHeaderAs(const std::string& key, const T& def = T()) {
+                return getAs(m_headers, key, def);
+            }
+
+            template<class T>
             bool checkGetHeaderAs(const std::string& key, T& val, const T& def = T()){
                 return checkGetAs(m_headers, key, val, def);
             }

@@ -37,7 +37,10 @@ set(AGENT_LIB_SRC
     src/fd_manager.cpp
     src/hook.cpp
     src/bytearray.cpp
-    src/http/http.cpp)
+    src/http/http.cpp
+    src/http/http11_parser.cpp
+    src/http/httpclient_parser.cpp
+    src/http/http_parser.h)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})
 

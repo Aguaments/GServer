@@ -873,7 +873,7 @@ namespace agent{
         {
 
             // ConfigVar --> FromString --> setValue(new_value) : oldValue(m_val--成员变量) --> 执行listener的callback
-            g_log_defines -> addListener(0xF2E231, [](const std::set<LogDefine>& old_value,
+            g_log_defines -> addListener([](const std::set<LogDefine>& old_value,
                 const std::set<LogDefine>& new_value){
                 AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "on_logger_conf_changed";
                 for(auto& i: new_value)

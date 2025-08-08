@@ -1,0 +1,104 @@
+#include "tcp_server.h"
+#include "config.h"
+#include "log.h"
+
+namespace agent{
+
+    static ConfigVar<uint64_t>::ptr g_tcp_read_timeout = Config::Lookup(
+        "tcp_server.read_timeout", (uint64_t)(60 * 100 * 2),"tcp server read timeout");
+    
+    static Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
+        
+    
+    TcpServer::TcpServer(IOManager* worker, IOManager* accept_worker)
+    :m_worker(worker)
+    ,m_acceptWorker(accept_worker)
+    ,m_readTimeout(g_tcp_read_timeout -> getValue())
+    ,m_name("agent/1.0.0")
+    ,m_isStop(true)
+    {}
+
+    TcpServer::~TcpServer(){
+        for(auto& i : m_socks){
+            i -> close();
+        }
+        m_socks.clear();
+    }
+
+    bool TcpServer::bind(Address::ptr addr){
+        std::vector<Address::ptr> addrs;
+        std::vector<Address::ptr> e_addrs;
+        addrs.push_back(addr, e_addrs);
+
+        return bind(addrs);
+    }
+
+    bool TcpServer::bind(const std::vector<Address::ptr>& addrs, std::vector<Address::ptr>& e_addrs){
+        for(auto& addr : addrs){
+            Socket::ptr sock = Socket::CreateTCP(addr);
+            if(!sock -> bind(addr)){
+                AGENT_LOG_ERROR(g_logger) << "bind fail errno=" << errno << " errstr=" << strerror(errno)
+                                          << " addr=[" << addr -> toString() << "]";
+                e_addrs.push_back(addr);
+                continue;
+            }
+            if(!sock -> listen()){
+                AGENT_LOG_ERROR(g_logger) << "listen fail errno=" << errno << " strerror=" << strerror(errno)
+                                          << " addr=[" << addr -> toString() << "]";
+                e_addrs.push_back(addr);
+                continue; 
+            }
+            m_socks.push_back(sock);
+        }
+
+        if(e_addrs.empty()){
+            m_socks.clear();
+            return false;
+        }
+
+        for(auto& i : m_socks){
+            AGENT_LOG_INFO(g_logger) << "server bind success: " << *i;
+        }
+
+        return true;
+    }
+
+    void TcpServer::startAccept(Socket::ptr sock) {
+        while(!m_isStop){
+            Socket::ptr client = sock -> accept();
+            if(client){
+                m_worker -> schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
+            }else{
+                AGENT_LOG_ERROR(g_logger) << "accept errno=" << errno << " strerror=" << strerror(errno);
+            }
+        }
+    }
+
+    bool TcpServer::start(){
+        if(!m_isStop){
+            return true;
+        }
+        m_isStop = false;
+        for(auto& sock: m_socks){
+            m_acceptWorker -> schedule(std::bind(&TcpServer::startAccept, shared_from_this(), sock));
+        }
+        return ture;
+    }
+
+    void TcpServer::stop(){
+        m_isStop = false;
+        auto self = sharead_from_this();
+        m_acceptWorker -> schedule([this, self](){
+            for(auto & sock: m_socks){
+                sock -> cancelAll();
+                sock -> close();
+            } 
+            m_socks.clear();
+        });
+    }
+
+
+    void TcpSever::handleClient(Socket::ptr client){
+        AGENT_LOG_INFO(g_logger) << "handleClient: " << *client;
+    }
+}

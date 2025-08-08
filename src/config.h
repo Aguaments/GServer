@@ -360,7 +360,7 @@ namespace agent{
         }
         std::string getTypeName() const override {return typeid(T).name();}
 
-        uint64_t addListener(uint64_t key, on_change_cb cb)
+        uint64_t addListener(on_change_cb cb)
         {
             static uint64_t s_fun_id = 0;
             ConfigMutexType::WriteLock lock(m_mutex);
