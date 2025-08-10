@@ -165,7 +165,7 @@ agent::ConfigVar<std::map<std::string, Person>>::ptr g_map_person = agent::Confi
 
 void test_class()
 {
-    g_person -> addListener(10, [](const Person& old_value, const Person& new_value){
+    g_person -> addListener([](const Person& old_value, const Person& new_value){
         AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "old_value=" << old_value.toString() << " new_value=" << new_value.toString();
     });
     AGENT_LOG_INFO(AGENT_LOG_ROOT()) << "before: " << g_person -> getValue().toString() << " - " << g_person -> toString();

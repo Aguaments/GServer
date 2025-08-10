@@ -3,6 +3,8 @@
 
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
 
 #include "endian.hpp"
 #include "log.h"
@@ -11,29 +13,17 @@ namespace agent {
 
     static Logger::ptr g_logger = AGENT_LOG_ROOT();
 
-    template<class T>
+        template<class T>
     static T CreateMask(uint32_t bits){
         return (1 << (sizeof(T) * 8 - bits)) - 1;
     }
 
-    Address::ptr Address::Create(const sockaddr* addr, socklen_t addrlen){
-        if(addr == nullptr){
-            return nullptr;
+    template<class T>
+    static uint32_t CountBytes(T value) {
+        uint32_t result = 0;
+        for(; value; ++result) {
+            value &= value - 1;
         }
-
-        Address::ptr result;
-        // switch(m_addr)
-        // switch(addr->sa_family) {
-        //     case AF_INET:
-        //         result.reset(new IPv4Address(*(const sockaddr_in*)addr));
-        //         break;
-        //     case AF_INET6:
-        //         result.reset(new IPv6Address(*(const sockaddr_in6*)addr));
-        //         break;
-        //     default:
-        //         result.reset(new UnknowAddress(*addr));
-        //         break;
-        // }
         return result;
     }
 
@@ -96,6 +86,125 @@ namespace agent {
         return !result.empty();
     }
 
+    Address::ptr Address::LookupAny(const std::string& host, int family, int type, int protocol){
+        std::vector<Address::ptr> result;
+        if(Lookup(result, host, family, type, protocol)){
+            return result[0];
+        }
+        return nullptr;
+    }
+
+    std::shared_ptr<IPAddress> Address::LookupAnyIPAddress(const std::string& host, int family, int type, int protocol){
+        std::vector<Address::ptr> result;
+        if(Lookup(result, host, family, type, protocol)){
+            for(auto& i : result){
+                IPAddress::ptr v = std::dynamic_pointer_cast<IPAddress>(i);
+                if(v){
+                    return v;
+                }
+            }
+        }
+        return nullptr;
+    }
+
+    bool Address::GetInterfaceAddresses(std::multimap<std::string, std::pair<Address::ptr, uint32_t>>& result, 
+        int family){
+        struct ifaddrs *next, *results;
+        if(getifaddrs(&results) != 0) {
+            AGENT_LOG_DEBUG(g_logger) << "Address::GetInterfaceAddresses getifaddrs "
+                " err=" << errno << " errstr=" << strerror(errno);
+            return false;
+        }
+
+        try {
+            for(next = results; next; next = next->ifa_next) {
+                Address::ptr addr;
+                uint32_t prefix_len = ~0u;
+                if(family != AF_UNSPEC && family != next->ifa_addr->sa_family) {
+                    continue;
+                }
+                switch(next->ifa_addr->sa_family) {
+                    case AF_INET:
+                        {
+                            addr = Create(next->ifa_addr, sizeof(sockaddr_in));
+                            uint32_t netmask = ((sockaddr_in*)next->ifa_netmask)->sin_addr.s_addr;
+                            prefix_len = CountBytes(netmask);
+                        }
+                        break;
+                    case AF_INET6:
+                        {
+                            addr = Create(next->ifa_addr, sizeof(sockaddr_in6));
+                            in6_addr& netmask = ((sockaddr_in6*)next->ifa_netmask)->sin6_addr;
+                            prefix_len = 0;
+                            for(int i = 0; i < 16; ++i) {
+                                prefix_len += CountBytes(netmask.s6_addr[i]);
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                if(addr) {
+                    result.insert(std::make_pair(next->ifa_name,
+                                std::make_pair(addr, prefix_len)));
+                }
+            }
+        } catch (...) {
+            AGENT_LOG_ERROR(g_logger) << "Address::GetInterfaceAddresses exception";
+            freeifaddrs(results);
+            return false;
+        }
+        freeifaddrs(results);
+        return !result.empty();
+    }
+    bool Address::GetInterfaceAddresses(std::vector<std::pair<Address::ptr, uint32_t>>& result, 
+        const std::string& iface, int family){
+        if(iface.empty() || iface == "*") {
+            if(family == AF_INET || family == AF_UNSPEC) {
+                result.push_back(std::make_pair(Address::ptr(new IPv4Address()), 0u));
+            }
+            if(family == AF_INET6 || family == AF_UNSPEC) {
+                result.push_back(std::make_pair(Address::ptr(new IPv6Address()), 0u));
+            }
+            return true;
+        }
+
+        std::multimap<std::string
+            ,std::pair<Address::ptr, uint32_t> > results;
+
+        if(!GetInterfaceAddresses(results, family)) {
+            return false;
+        }
+
+        auto its = results.equal_range(iface);
+        for(; its.first != its.second; ++its.first) {
+            result.push_back(its.first->second);
+        }
+        return !result.empty();
+
+    }
+
+    Address::ptr Address::Create(const sockaddr* addr, socklen_t addrlen){
+        if(addr == nullptr){
+            return nullptr;
+        }
+
+        Address::ptr result;
+        switch(addr->sa_family) {
+            case AF_INET:
+                result.reset(new IPv4Address(*(const sockaddr_in*)addr));
+                break;
+            case AF_INET6:
+                result.reset(new IPv6Address(*(const sockaddr_in6*)addr));
+                break;
+            default:
+                result.reset(new UnknowAddress(*addr));
+                break;
+        }
+        return result;
+    }
+
     int Address::getFamily() const {
         return getAddr() -> sa_family;
     }
@@ -119,6 +228,11 @@ namespace agent {
             return true;
         }
         return false;
+    }
+
+    bool Address::operator==(const Address& rhs) const {
+        return getAddrLen() == rhs.getAddrLen()
+            && memcmp(getAddr(), rhs.getAddr(), getAddrLen()) == 0;
     }
 
     bool Address::operator!=(const Address& rhs) const{
@@ -156,11 +270,6 @@ namespace agent {
         }
     }
 
-    IPv4Address::IPv4Address(){
-        memset(&m_addr, 0, sizeof(m_addr));
-        m_addr.sin_family = AF_INET;
-    }
-
     IPv4Address::IPv4Address(const sockaddr_in& address){
         m_addr = address;
     }
@@ -173,6 +282,10 @@ namespace agent {
     }
 
     const sockaddr* IPv4Address::getAddr() const{
+        return (sockaddr*)&m_addr;
+    }
+
+    sockaddr* IPv4Address::getAddr() {
         return (sockaddr*)&m_addr;
     }
 
@@ -234,6 +347,10 @@ namespace agent {
         return IPv4Address::ptr(new IPv4Address(subnet));
     }
 
+    uint32_t IPv4Address::getPort() const {
+        return byteswapOnLittleEndian(m_addr.sin_port);
+    }
+
     void IPv4Address::setPort(uint32_t port){
         m_addr.sin_port = byteswapOnLittleEndian(port);
     }
@@ -252,6 +369,18 @@ namespace agent {
         m_addr.sin6_family = AF_INET6;
         m_addr.sin6_port = byteswapOnLittleEndian(port);
         memcpy(&m_addr.sin6_addr.__in6_u, address, 16);
+    }
+
+    const sockaddr* IPv6Address::getAddr() const {
+        return (sockaddr*)&m_addr;
+    }
+
+    sockaddr* IPv6Address::getAddr() {
+        return (sockaddr*)&m_addr;
+    }
+
+    socklen_t IPv6Address::getAddrLen() const {
+        return sizeof(m_addr);
     }
 
     std::ostream& IPv6Address::insert(std::ostream& os) const{
@@ -355,6 +484,10 @@ namespace agent {
         m_length += offsetof(sockaddr_un, sun_path);
     }
 
+    sockaddr* UnixAddress::getAddr() {
+        return (sockaddr*)&m_addr;
+    }
+
     const sockaddr* UnixAddress::getAddr() const{
         return (sockaddr*)&m_addr;
     }
@@ -381,6 +514,10 @@ namespace agent {
 
     const sockaddr* UnknowAddress::getAddr() const{
         return &m_addr;
+    }
+
+    sockaddr* UnknowAddress::getAddr() {
+        return (sockaddr*)&m_addr;
     }
     socklen_t UnknowAddress::getAddrLen() const{
         return sizeof(m_addr);

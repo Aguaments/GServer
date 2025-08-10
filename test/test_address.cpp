@@ -4,6 +4,44 @@
 #include <sys/socket.h>
 #include <iostream>
 
+#include "log.h"
+#include "address.h"
+
+agent::Logger::ptr g_logger = AGENT_LOG_ROOT();
+
+void test(){
+    std::vector<agent::Address::ptr> addrs;
+
+    bool v = agent::Address::Lookup(addrs, "www.baidu.com:http");
+    if(!v){
+        AGENT_LOG_ERROR(g_logger) << "lookup fail.";
+        return ;
+    }
+
+    for(size_t i = 0; i < addrs.size(); ++ i){
+        AGENT_LOG_INFO(g_logger) << i << " - " << addrs[i] -> toString();
+    }
+}
+
+void test_iface(){
+    std::multimap<std::string, std::pair<agent::Address::ptr, uint32_t>> results;
+    bool v = agent::Address::GetInterfaceAddresses(results);
+    if(!v){
+        return;
+    }
+
+    for(auto& i : results){
+        AGENT_LOG_INFO(g_logger) << i.first << " - " << i.second.first -> toString() << " - " << i.second.second;
+    }
+}
+
+void test_ipv4(){
+    auto addr = agent::IPAddress::Create("www.baidu.com");
+    if(addr){
+        AGENT_LOG_INFO(g_logger) << addr -> toString();
+    }
+}
+
 void to_String(){
     std::stringstream os;
 
@@ -39,6 +77,7 @@ void to_String(){
 }
 
 int main(){
-    std::cout << std::hex << (1 << (sizeof(uint32_t) * 8 - 11)) << std::endl;
+    test_iface();
+    test_ipv4();
     return 0;
 }

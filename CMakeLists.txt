@@ -37,6 +37,7 @@ set(AGENT_LIB_SRC
     src/fd_manager.cpp
     src/hook.cpp
     src/bytearray.cpp
+    src/address.cpp
     src/http/http.cpp
     src/http/http11_parser.cpp
     src/http/httpclient_parser.cpp
@@ -74,11 +75,11 @@ set(LIB_LIB
 # add_executable(test_hook test/test_hook.cpp)
 # target_link_libraries(test_hook ${LIB_LIB})
 
-# add_executable(test_address test/test_address.cpp)
-# target_link_libraries(test_address ${LIB_LIB})
+add_executable(test_address test/test_address.cpp)
+target_link_libraries(test_address ${LIB_LIB})
 
-add_executable(test_http test/test_http.cpp)
-target_link_libraries(test_http ${LIB_LIB})
+# add_executable(test_http test/test_http.cpp)
+# target_link_libraries(test_http ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
