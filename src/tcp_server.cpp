@@ -28,9 +28,9 @@ namespace agent{
     bool TcpServer::bind(Address::ptr addr){
         std::vector<Address::ptr> addrs;
         std::vector<Address::ptr> e_addrs;
-        addrs.push_back(addr, e_addrs);
+        addrs.push_back(addr);
 
-        return bind(addrs);
+        return bind(addrs, e_addrs);
     }
 
     bool TcpServer::bind(const std::vector<Address::ptr>& addrs, std::vector<Address::ptr>& e_addrs){
@@ -51,7 +51,7 @@ namespace agent{
             m_socks.push_back(sock);
         }
 
-        if(e_addrs.empty()){
+        if(!e_addrs.empty()){
             m_socks.clear();
             return false;
         }
@@ -67,6 +67,7 @@ namespace agent{
         while(!m_isStop){
             Socket::ptr client = sock -> accept();
             if(client){
+                client -> setRecvTimeout(m_readTimeout);
                 m_worker -> schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
             }else{
                 AGENT_LOG_ERROR(g_logger) << "accept errno=" << errno << " strerror=" << strerror(errno);
@@ -82,12 +83,12 @@ namespace agent{
         for(auto& sock: m_socks){
             m_acceptWorker -> schedule(std::bind(&TcpServer::startAccept, shared_from_this(), sock));
         }
-        return ture;
+        return true;
     }
 
     void TcpServer::stop(){
         m_isStop = false;
-        auto self = sharead_from_this();
+        auto self = shared_from_this();
         m_acceptWorker -> schedule([this, self](){
             for(auto & sock: m_socks){
                 sock -> cancelAll();
@@ -98,7 +99,7 @@ namespace agent{
     }
 
 
-    void TcpSever::handleClient(Socket::ptr client){
+    void TcpServer::handleClient(Socket::ptr client){
         AGENT_LOG_INFO(g_logger) << "handleClient: " << *client;
     }
 }

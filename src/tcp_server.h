@@ -14,11 +14,11 @@ namespace agent{
         using ptr = std::shared_ptr<TcpServer>;
         TcpServer(IOManager* worker = IOManager::GetThis(), IOManager* accept_worker = IOManager::GetThis());
 
-        virtual ~TcpServer(){}
+        virtual ~TcpServer();
         virtual bool bind(Address::ptr addr);
         virtual bool bind(const std::vector<Address::ptr>& addrs, std::vector<Address::ptr>& e_addrs);
         virtual bool start();
-        void bool stop();
+        void stop();
 
         uint64_t getReadTimeout() const {return m_readTimeout;}
         std::string getName() const {return m_name;}

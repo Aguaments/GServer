@@ -10,6 +10,7 @@
 #include "log.h"
 #include "fd_manager.h"
 #include "config.h"
+#include "macro.h"
 
 
 extern agent::Logger::ptr g_logger;
@@ -28,8 +29,6 @@ namespace agent{
         XX(nanosleep)\
         XX(socket) \
         XX(accept) \
-        XX(bind) \
-        XX(listen) \
         XX(connect) \
         XX(read) \
         XX(readv) \
@@ -130,7 +129,7 @@ retry:
         }
 
         int rt = iom -> addEvent(fd, (agent::IOManager::EventType)(event));
-        if(!rt){
+        if(AGENT_UNLIKELY(rt)){
             AGENT_LOG_ERROR(g_logger) <<  hook_fun_name << " addEvent(" << fd << ", " << event << ")";
             if(timer){
                 timer -> cancel();
@@ -217,6 +216,7 @@ extern "C"{
 
     int connect_with_timeout(int fd, const struct sockaddr* addr, socklen_t addrlen, uint64_t timeout_ms){
         if(!agent::t_hook_enable){
+            AGENT_LOG_INFO(g_logger) << "before connect";
             return connect_f(fd, addr, addrlen);
         }
         agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
@@ -285,7 +285,7 @@ extern "C"{
     }
 
     int connect(int sockfd, const struct sockaddr* addr, socklen_t addr_len){
-        return connect_with_timeout(sockfd, addr, addr_len, g_tcp_connect_timeout -> getValue());
+        return connect_with_timeout(sockfd, addr, addr_len, agent::s_connect_timeout);
     }
 
     int accept(int sockfd, struct sockaddr * addr, socklen_t *addrlen){
@@ -296,13 +296,13 @@ extern "C"{
         return fd;
     }
 
-    int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen){
-        return bind_f(sockfd, addr, addrlen);
-    }
+    // int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen){
+    //     return bind_f(sockfd, addr, addrlen);
+    // }
 
-    int listen(int sockfd, int backlog){
-        return listen_f(sockfd, backlog);
-    }
+    // int listen(int sockfd, int backlog){
+    //     return listen_f(sockfd, backlog);
+    // }
 
 
     ssize_t read(int fd, void* buf, size_t count){

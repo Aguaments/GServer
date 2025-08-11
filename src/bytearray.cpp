@@ -447,14 +447,13 @@ namespace agent{
     void ByteArray::addCapacity(size_t size){
         if(size <= 0) return;
 
-        size_t rest_cap = getCapacity();
-
-        if(rest_cap >= size){
+        size_t ra = getRemainAmount();
+        if(ra >= size){
             return ;
         }
 
-        size -= rest_cap;
-        size_t count = ceil(size * 1.0 / m_basesize);
+        size -= ra;
+        size_t node_count = ceil(size * 1.0 / m_basesize);
 
         Node* tmp = m_cur;
 
@@ -462,31 +461,31 @@ namespace agent{
             tmp = tmp -> next;
         }
  
-        for(int i = 0; i < (int)count; ++ i){
+        for(int i = 0; i < (int)node_count; ++ i){
             tmp -> next = new Node(m_basesize);
             tmp = tmp -> next;
             m_capacity += m_basesize;
         }
 
-        if(rest_cap == 0) {
+        if(ra == 0) {
             m_cur = m_cur -> next;
         }
     }
 
-    void ByteArray::setPosition(size_t v) {
-        if(v > m_capacity) {
+    void ByteArray::setPosition(size_t pos) {
+        if(pos > m_capacity || pos > m_size) {
             throw std::out_of_range("set_position out of range");
         }
-        m_position = v;
-        if(m_position > m_size) {
-            m_size = m_position;
-        }
+        m_position = pos;
+        // if(m_position <= m_size) {
+        //     m_size = m_position;
+        // }
         m_cur = m_root;
-        while(v > m_cur->size) {
-            v -= m_cur->size;
+        while(pos > m_cur->size) {
+            pos -= m_cur->size;
             m_cur = m_cur->next;
         }
-        if(v == m_cur->size) {
+        if(pos == m_cur->size) {
             m_cur = m_cur->next;
         }
     }

@@ -163,7 +163,7 @@ namespace agent{
             if(sock->connect(uaddr)) {
                 return false;
             } else {
-                agent::FSUtil::Unlink(uaddr->getPath(), true);
+                // agent::FSUtil::Unlink(uaddr->getPath(), true);
             }
         }
 
@@ -452,5 +452,9 @@ namespace agent{
                 << ", " << m_type << ", " << m_protocol << ") errno="
                 << errno << " errstr=" << strerror(errno);
         }
+    }
+
+    std::ostream& operator<<(std::ostream& os, const Socket& sock) {
+        return sock.dump(os);
     }
 }

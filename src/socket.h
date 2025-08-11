@@ -91,11 +91,12 @@ namespace agent{
         int getType() const{return m_type;}
         int getProtocol() const{return m_protocol;}
 
-        bool isConnected() const;
+        bool isConnected() const{return m_isConnected;};
         bool isValid() const;
-        bool getError();
+        int getError();
 
         std::ostream& dump(std::ostream& os) const;
+        std::string toString() const;
 
         int getSocket() const;
     

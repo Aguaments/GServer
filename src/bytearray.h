@@ -94,15 +94,15 @@ namespace agent{
 
     private:
         void addCapacity(size_t size);
-        size_t getCapacity() const {return m_capacity - m_position;}
+        size_t getRemainAmount() const {return m_capacity - m_position;}
 
     private:
-        size_t m_basesize;
-        size_t m_position;
-        size_t m_capacity;
-        size_t m_size;  // 当前数据量的大小
-        int8_t m_endian;
-        Node* m_root;
-        Node* m_cur;
+        size_t m_basesize;  // 块节点的基本大小
+        size_t m_position;  // 当前位置
+        size_t m_capacity;  // 当前容量
+        size_t m_size;      // 当前的实际的数据量
+        int8_t m_endian;    // 端序
+        Node* m_root;       // 根节点
+        Node* m_cur;        // 当前节点
     };
 }

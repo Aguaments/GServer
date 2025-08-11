@@ -38,10 +38,14 @@ set(AGENT_LIB_SRC
     src/hook.cpp
     src/bytearray.cpp
     src/address.cpp
+    src/socket.cpp
     src/http/http.cpp
+    src/tcp_server.cpp
     src/http/http11_parser.cpp
     src/http/httpclient_parser.cpp
-    src/http/http_parser.h)
+    src/http/http_parser.h
+    src/stream.cpp
+    src/socket_stream.cpp)
 
 add_library(agent SHARED ${AGENT_LIB_SRC})
 
@@ -75,11 +79,17 @@ set(LIB_LIB
 # add_executable(test_hook test/test_hook.cpp)
 # target_link_libraries(test_hook ${LIB_LIB})
 
-add_executable(test_address test/test_address.cpp)
-target_link_libraries(test_address ${LIB_LIB})
+# add_executable(test_address test/test_address.cpp)
+# target_link_libraries(test_address ${LIB_LIB})
+
+# add_executable(test_socket test/test_socket.cpp)
+# target_link_libraries(test_socket ${LIB_LIB})
 
 # add_executable(test_http test/test_http.cpp)
 # target_link_libraries(test_http ${LIB_LIB})
+
+add_executable(test_tcp_server test/test_tcp_server.cpp)
+target_link_libraries(test_tcp_server ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

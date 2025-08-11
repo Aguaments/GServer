@@ -66,8 +66,9 @@ namespace agent{
         RWMutexType::ReadLock lock(m_rwmutex);
 
         if((int)m_fdContexts.size() > fd){
-            lock.unlock();
+            
             fd_ctx = m_fdContexts[fd];
+            lock.unlock();
         }else{
             lock.unlock();
             RWMutexType::WriteLock lock2(m_rwmutex);
@@ -77,7 +78,7 @@ namespace agent{
 
         FdContext::MutexType::Lock lock3(fd_ctx -> mutex);
 
-        if(fd_ctx -> event & event){
+        if(AGENT_UNLIKELY(fd_ctx -> event & event)){
             AGENT_LOG_ERROR(g_logger) << "addEvent assert fd = " << fd 
                                     << " event = " << event 
                                     << " fd_ctx.event = " << fd_ctx -> event;

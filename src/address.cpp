@@ -13,7 +13,11 @@ namespace agent {
 
     static Logger::ptr g_logger = AGENT_LOG_ROOT();
 
-        template<class T>
+    std::ostream& operator<<(std::ostream& os, Address& addr){
+        return addr.insert(os);
+    }
+
+    template<class T>
     static T CreateMask(uint32_t bits){
         return (1 << (sizeof(T) * 8 - bits)) - 1;
     }
@@ -27,6 +31,8 @@ namespace agent {
         return result;
     }
 
+
+    // 查询指定指定域名的所有地址信息
     bool Address::Lookup(std::vector<Address::ptr>& result, const std::string& host, int family, int type, int protocol) {
         addrinfo hints, *results, *next;
         hints.ai_flags = 0;
@@ -86,6 +92,7 @@ namespace agent {
         return !result.empty();
     }
 
+    // 找到与域名相关的任意地址
     Address::ptr Address::LookupAny(const std::string& host, int family, int type, int protocol){
         std::vector<Address::ptr> result;
         if(Lookup(result, host, family, type, protocol)){
@@ -94,6 +101,7 @@ namespace agent {
         return nullptr;
     }
 
+    // 找到与域名相关的任意IP地址
     std::shared_ptr<IPAddress> Address::LookupAnyIPAddress(const std::string& host, int family, int type, int protocol){
         std::vector<Address::ptr> result;
         if(Lookup(result, host, family, type, protocol)){
@@ -107,6 +115,7 @@ namespace agent {
         return nullptr;
     }
 
+    // 获取所有本地的IP地址网络接口卡信息
     bool Address::GetInterfaceAddresses(std::multimap<std::string, std::pair<Address::ptr, uint32_t>>& result, 
         int family){
         struct ifaddrs *next, *results;
@@ -209,7 +218,7 @@ namespace agent {
         return getAddr() -> sa_family;
     }
 
-    std::string Address::toString(){
+    std::string Address::toString() const{
         std::stringstream ss;
         insert(ss);
         return ss.str();
@@ -275,8 +284,8 @@ namespace agent {
     }
 
     IPv4Address::IPv4Address(uint32_t address, uint32_t port){
-        memset(&address, 0, sizeof(address));
-        m_addr.sin_family = address;
+        memset(&m_addr, 0, sizeof(m_addr));
+        m_addr.sin_family = AF_INET;
         m_addr.sin_port = byteswapOnLittleEndian(port);
         m_addr.sin_addr.s_addr = byteswapOnLittleEndian(address);
     }
@@ -351,7 +360,7 @@ namespace agent {
         return byteswapOnLittleEndian(m_addr.sin_port);
     }
 
-    void IPv4Address::setPort(uint32_t port){
+    void IPv4Address::setPort(uint16_t port){
         m_addr.sin_port = byteswapOnLittleEndian(port);
     }
 
@@ -365,7 +374,7 @@ namespace agent {
     }
 
     IPv6Address::IPv6Address(const uint8_t address[16], uint32_t port){
-        memset(&address, 0, 16);
+        memset(&m_addr, 0, sizeof(m_addr));
         m_addr.sin6_family = AF_INET6;
         m_addr.sin6_port = byteswapOnLittleEndian(port);
         memcpy(&m_addr.sin6_addr.__in6_u, address, 16);
@@ -392,7 +401,7 @@ namespace agent {
             if(addr[i] == 0 && !use_zero){
                 continue;
             }
-            if(1 && addr[i] == 0 && !use_zero){
+            if(i && addr[i - 1] == 0 && !use_zero){
                 os << ":";
                 use_zero = true;
             }
@@ -456,7 +465,7 @@ namespace agent {
         return byteswapOnLittleEndian(m_addr.sin6_port);
     }
 
-    void IPv6Address::setPort(uint32_t port) {
+    void IPv6Address::setPort(uint16_t port) {
         m_addr.sin6_port = byteswapOnLittleEndian(port);
     }
 
@@ -477,7 +486,7 @@ namespace agent {
             --m_length;
         }
 
-        if(m_length <= sizeof(m_addr.sun_path)){
+        if(m_length > sizeof(m_addr.sun_path)){
             throw std::logic_error("path too log");
         }
         memcpy(m_addr.sun_path, path.c_str(), m_length);
@@ -494,6 +503,9 @@ namespace agent {
 
     socklen_t UnixAddress::getAddrLen() const{
         return m_length;
+    }
+    void UnixAddress::setAddrLen(uint32_t v) {
+        m_length = v;
     }
 
     std::ostream& UnixAddress::insert(std::ostream& os) const{

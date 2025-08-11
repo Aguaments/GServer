@@ -8,6 +8,7 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <sys/uio.h>
+#include <cstdint>
 
 namespace agent{
     bool is_hook_enable();
@@ -17,6 +18,8 @@ namespace agent{
 #ifdef __cplusplus
 extern "C"{
 #endif
+
+    int connect_with_timeout(int fd, const struct sockaddr* addr, socklen_t len, uint64_t timeout);
 
     using sleep_func = unsigned int (*)(unsigned int secondes);
     extern sleep_func sleep_f;
@@ -36,12 +39,6 @@ extern "C"{
 
     using accept_func = int (*)(int sockfd, struct sockaddr * addr, socklen_t *addrlen);
     extern accept_func accept_f;
-
-    using bind_func = int (*)(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-    extern bind_func bind_f;
-
-    using listen_func = int (*)(int sockfd, int backlog);
-    extern listen_func listen_f;
 
     // read
     using read_func = ssize_t (*)(int fd, void* buf, size_t count);
