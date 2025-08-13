@@ -255,7 +255,10 @@ namespace agent{
                 return getAs(m_cookies, key, def);
             }
 
-            std::ostream& dump(std::ostream& os);
+            std::ostream& dump(std::ostream& os) const;
+
+            bool isClose() const { return m_close;}
+            void setClose(bool v) { m_close = v;}
 
         private:
             HttpMethod m_method;
@@ -309,7 +312,7 @@ namespace agent{
                 return getAs(m_headers, key, def);
             }
 
-            std::ostream& dump(std::ostream& os);
+            std::ostream& dump(std::ostream& os) const;
 
         private:
             HttpStatus m_status;
@@ -320,5 +323,9 @@ namespace agent{
             std::string m_reason;
             MapType m_headers;
         };
+
+        std::ostream& operator<<(std::ostream& os, const HttpRequest& req);
+        std::ostream& operator<<(std::ostream& os, const HttpResponse& rsp);
+
     }
 }

@@ -13,12 +13,12 @@
 #include "macro.h"
 
 
-extern agent::Logger::ptr g_logger;
-
-static agent::ConfigVar<int>::ptr g_tcp_connect_timeout = agent::Config::Lookup("tcp.connect.timeout", 5000, "tcp connect timeout");
+agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
 
 namespace agent{
     
+    static agent::ConfigVar<int>::ptr g_tcp_connect_timeout = agent::Config::Lookup("tcp.connect.timeout", 5000, "tcp connect timeout");
+
     static thread_local bool t_hook_enable = false;
 
     static uint64_t s_connect_timeout = -1;
@@ -110,6 +110,7 @@ static ssize_t do_io(int fd, OriginFun fun, const char* hook_fun_name, uint32_t 
 retry:
     ssize_t n = fun(fd, std::forward<Args>(args)...);
     while(n == -1 && errno == EINTR){
+        AGENT_LOG_WARN(g_logger) << "start to try again...";
         n = fun(fd, std::forward<Args>(args)...);
     }
     if(n == -1 && errno == EAGAIN){
@@ -216,7 +217,7 @@ extern "C"{
 
     int connect_with_timeout(int fd, const struct sockaddr* addr, socklen_t addrlen, uint64_t timeout_ms){
         if(!agent::t_hook_enable){
-            AGENT_LOG_INFO(g_logger) << "before connect";
+            // AGENT_LOG_INFO(g_logger) << "before connect";
             return connect_f(fd, addr, addrlen);
         }
         agent::FdCtx::ptr ctx = agent::FdMgr::getInstance() -> get(fd);
@@ -231,7 +232,7 @@ extern "C"{
             return connect_f(fd, addr, addrlen);
         }
 
-        int n = connect(fd, addr, addrlen);
+        int n = connect_f(fd, addr, addrlen);
         if(n == 0){
             return 0;
         }else if(n != -1 || errno != EINPROGRESS){
@@ -450,7 +451,7 @@ extern "C"{
     }
 
    int getsockopt(int sockfd, int level, int optname, void* optval, socklen_t* optlen){
-        return 0;
+        return getsockopt_f(sockfd, level, optname, optval, optlen);
    }
     
     int setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t optlen){

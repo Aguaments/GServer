@@ -13,23 +13,25 @@ namespace agent{
     public:
         using ptr = std::shared_ptr<TcpServer>;
         TcpServer(IOManager* worker = IOManager::GetThis(), IOManager* accept_worker = IOManager::GetThis());
-
         virtual ~TcpServer();
+
         virtual bool bind(Address::ptr addr);
         virtual bool bind(const std::vector<Address::ptr>& addrs, std::vector<Address::ptr>& e_addrs);
-        virtual bool start();
-        void stop();
 
         uint64_t getReadTimeout() const {return m_readTimeout;}
-        std::string getName() const {return m_name;}
         void setReadTimeout(uint64_t v) {m_readTimeout = v;}
+        std::string getName() const {return m_name;}
         void setName(const std::string name){m_name = name;}
+
+        virtual bool start();
+        void stop();
 
         bool isStop() const {return m_isStop;}
 
     protected:
         virtual void handleClient(Socket::ptr client);
         virtual void startAccept(Socket::ptr sock);
+        
     private:
         std::vector<Socket::ptr> m_socks;
         IOManager* m_worker;

@@ -79,7 +79,7 @@ namespace agent{
     {
         if(m_thread)
         {
-            AGENT_LOG_ERROR(g_logger) << "[Thread " << Utils::getThreadId() << "] end.";
+            AGENT_LOG_WARN(g_logger) << "[Thread " << Utils::getThreadId() << "] end.";
             pthread_join(m_thread, nullptr);
             m_thread = 0;
         }
@@ -97,7 +97,7 @@ namespace agent{
         std::function<void()> cb;
         cb.swap(thread ->m_cb);
         thread -> m_semaphore.notify();
-        AGENT_LOG_INFO(g_logger) << "[Thread " << Utils::getThreadId() << "] start...";
+        AGENT_LOG_WARN(g_logger) << "[Thread " << Utils::getThreadId() << "] start...";
         cb();
         return 0;
     }

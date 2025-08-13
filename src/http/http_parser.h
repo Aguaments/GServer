@@ -13,18 +13,19 @@ namespace agent{
             using ptr = std::shared_ptr<HttpRequestParser>;
             HttpRequestParser();
 
-            int isFinished();
-            int hasError();
-            size_t execute(char* data, size_t len, size_t off);
+            size_t execute(char* data, size_t len);
 
             HttpRequest::ptr getData() const { return m_data;}
-            void setError(int v) { m_error = v;}
             uint64_t getContentLength();
             const http_parser& getParser() const { return m_parser;}
+            void setError(int v) { m_error = v;}
 
 
             static uint64_t GetHttpRequestBufferSize();
             static uint64_t GetHttpRequestMaxBodySize();
+
+            int isFinished();
+            int hasError();
 
         private:
             http_parser m_parser;
@@ -37,17 +38,18 @@ namespace agent{
             using ptr = std::shared_ptr<HttpResponseParser>; 
             HttpResponseParser();
 
-            int isFinished();
-            int hasError();
             size_t execute(char* data, size_t len, bool chunck);
 
             HttpResponse::ptr getData() const { return m_data;}
-            void setError(int v) { m_error = v;}
             uint64_t getContentLength();
             const httpclient_parser& getParser() const { return m_parser;}
+            void setError(int v) { m_error = v;}
 
             static uint64_t GetHttpResponseBufferSize();
             static uint64_t GetHttpResponseMaxBodySize();
+
+            int isFinished();
+            int hasError();
 
         private:
             httpclient_parser m_parser;

@@ -16,6 +16,9 @@
 - ipv6 address
 - unix address
 
+## 进入HOOK的条件
+1. 
+
 
 ## 基础知识
 1. man指令

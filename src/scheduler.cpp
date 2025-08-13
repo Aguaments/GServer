@@ -92,6 +92,7 @@ namespace agent
         AGENT_ASSERT(m_stopping);
 
         m_con.notify_all();
+
         std::vector<Thread::ptr> thrs;
         {
             MutexType::Lock lock(m_mutex);
@@ -128,9 +129,6 @@ namespace agent
                     return (!m_coroutines.empty() ||  m_idleFlag) || m_stopping;
                 });
                 {
-                    // if(this -> m_coroutines.empty() && this -> m_stopping) break;
-
-                    //AGENT_LOG_DEBUG(g_logger) << "Coroutine num: " << m_coroutines.empty();
                     auto it = m_coroutines.begin();
                     while(it != m_coroutines.end())
                     {
@@ -205,16 +203,16 @@ namespace agent
             }
             else
             {
-                AGENT_LOG_DEBUG(g_logger) << "Idle Coroutine";
+                // AGENT_LOG_DEBUG(g_logger) << "Idle Coroutine";
                 if(idle_coroutine -> getState() == Coroutine::State::TERM)
                 {
                     // idle_coroutine -> reset([this](){this -> idle();}, "Idle Coroutine");
                     break;
                 }
-                if(stopping()) break;
                 ++ m_activeCoroutineCount;
                 idle_coroutine -> swapIn();
                 --m_activeCoroutineCount;
+                if(stopping()) break;
                 if(idle_coroutine -> getState() != Coroutine::State::TERM 
                     && idle_coroutine -> getState() != Coroutine::State::EXCEPT)
                 {
@@ -232,7 +230,6 @@ namespace agent
     bool Scheduler::stopping()
     {
         MutexType::Lock lock(m_mutex);
-        std::cout << m_stopping << " " << m_coroutines.size();
         return m_stopping && m_coroutines.empty();
     }
     void Scheduler::idle()

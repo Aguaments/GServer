@@ -116,13 +116,15 @@ namespace agent{
 
     Socket::ptr Socket::accept() {
         Socket::ptr sock(new Socket(m_family, m_type, m_protocol));
-        int newsock = ::accept(m_sock, nullptr, nullptr);
-        if(newsock == -1) {
+        int nsk = ::accept(m_sock, nullptr, nullptr);
+        
+        if(nsk == -1) {
             AGENT_LOG_ERROR(g_logger) << "accept(" << m_sock << ") errno="
                 << errno << " errstr=" << strerror(errno);
             return nullptr;
         }
-        if(sock->init(newsock)) {
+        if(sock->init(nsk)) {
+            // AGENT_LOG_WARN(g_logger) << sock -> toString();
             return sock;
         }
         return nullptr;
@@ -130,6 +132,7 @@ namespace agent{
 
     bool Socket::init(int sock) {
         FdCtx::ptr ctx = FdMgr::getInstance()->get(sock);
+        // AGENT_LOG_DEBUG(g_logger) << ctx;
         if(ctx && ctx->isSocket() && !ctx->isClose()) {
             m_sock = sock;
             m_isConnected = true;
@@ -138,6 +141,7 @@ namespace agent{
             getRemoteAddress();
             return true;
         }
+        AGENT_LOG_DEBUG(g_logger) << "init false";
         return false;
     }
 
@@ -338,8 +342,7 @@ namespace agent{
         }
         socklen_t addrlen = result->getAddrLen();
         if(getpeername(m_sock, result->getAddr(), &addrlen)) {
-            //SYLAR_LOG_ERROR(g_logger) << "getpeername error sock=" << m_sock
-            //    << " errno=" << errno << " errstr=" << strerror(errno);
+            
             return Address::ptr(new UnknowAddress(m_family));
         }
         if(m_family == AF_UNIX) {
@@ -406,6 +409,7 @@ namespace agent{
         if(m_localAddress) {
             os << " local_address=" << m_localAddress->toString();
         }
+
         if(m_remoteAddress) {
             os << " remote_address=" << m_remoteAddress->toString();
         }

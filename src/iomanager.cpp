@@ -45,7 +45,7 @@ namespace agent{
     }
     IOManager::~IOManager()
     {
-        stop();
+        // stop();
         close(m_epfd);
         close(m_tickleFds[0]);
         close(m_tickleFds[1]);
@@ -76,7 +76,7 @@ namespace agent{
             fd_ctx = m_fdContexts[fd];
         }
 
-        FdContext::MutexType::Lock lock3(fd_ctx -> mutex);
+        FdContext::FdCtxMutexType::Lock lock3(fd_ctx -> mutex);
 
         if(AGENT_UNLIKELY(fd_ctx -> event & event)){
             AGENT_LOG_ERROR(g_logger) << "addEvent assert fd = " << fd 
@@ -100,9 +100,8 @@ namespace agent{
         ++ m_pendingEventCount;
         fd_ctx -> event = (EventType)(fd_ctx -> event | event);
         FdContext::EventContext& event_ctx = fd_ctx -> getContext(event);
-        AGENT_ASSERT(!event_ctx.scheduler
-                        && !event_ctx.coroutine
-                        && !event_ctx.cb);
+        AGENT_ASSERT(!event_ctx.scheduler);
+        AGENT_ASSERT(!event_ctx.coroutine || !event_ctx.cb);
 
         event_ctx.scheduler = Scheduler::GetThis();
         if(cb){
@@ -111,7 +110,7 @@ namespace agent{
             event_ctx.coroutine = Coroutine::GetThis();
             AGENT_ASSERT(event_ctx.coroutine -> getState() == Coroutine::State::EXEC);
         }
-        AGENT_LOG_DEBUG(g_logger) << "[Add event] " << Utils::print_epoll_events(fd_ctx -> event);
+        // AGENT_LOG_INFO(g_logger) << "[Add event] " << Utils::print_epoll_events(fd_ctx -> event);
         return 0;
     }
 
@@ -123,7 +122,7 @@ namespace agent{
         FdContext* fd_ctx = m_fdContexts[fd];
         lock.unlock();
 
-        FdContext::MutexType::Lock(fd_ctx -> mutex);
+        FdContext::FdCtxMutexType::Lock(fd_ctx -> mutex);
         if(!(fd_ctx -> event & event)){
             return false;
         }
@@ -158,7 +157,7 @@ namespace agent{
         FdContext* fd_ctx = m_fdContexts[fd];
         lock.unlock();
 
-        FdContext::MutexType::Lock(fd_ctx -> mutex);
+        FdContext::FdCtxMutexType::Lock(fd_ctx -> mutex);
         if(!(fd_ctx -> event & event)){
             return false;
         }
@@ -177,7 +176,7 @@ namespace agent{
             return false;
         }
 
-        AGENT_LOG_ERROR(g_logger) << "cancelEvent: " << fd_ctx -> fd << ", " << ep_event.events;
+        AGENT_LOG_DEBUG(g_logger) << "cancelEvent: " << fd_ctx -> fd << ", " << ep_event.events;
         fd_ctx -> triggerEvent(event);
         -- m_pendingEventCount;
         return true;
@@ -189,10 +188,13 @@ namespace agent{
             return false;
         }
         FdContext* fd_ctx = m_fdContexts[fd];
-        lock.unlock();
+        if(!fd_ctx){
+            return false;
+        }
+        FdContext::FdCtxMutexType::Lock lock2(fd_ctx -> mutex);
+        // lock.unlock();
 
-        FdContext::MutexType::Lock(fd_ctx -> mutex);
-        if(!(fd_ctx -> event)){
+        if(!(fd_ctx ->event)){
             return false;
         }
 
@@ -270,9 +272,9 @@ namespace agent{
     }
 
     void IOManager::FdContext::triggerEvent(EventType ev){
-        AGENT_LOG_DEBUG(g_logger) << "[Trigger Event] fd=" << fd
-       << " trigger Event =" << ev
-       << " fdContext events =" << event;
+    //     AGENT_LOG_DEBUG(g_logger) << "[Trigger Event] fd=" << fd
+    //    << " trigger Event =" << ev
+    //    << " fdContext events =" << event;
         // AGENT_ASSERT(event & ev);
         event = (EventType)(event & ~ev);
 
@@ -293,7 +295,7 @@ namespace agent{
     }
 
     void IOManager::idle(){
-        AGENT_LOG_DEBUG(g_logger) << "[IOMANAGER IDLE Coroutine] start";
+        AGENT_LOG_INFO(g_logger) << "[IOMANAGER IDLE Coroutine] start";
         epoll_event* events = new epoll_event[64]();
         std::shared_ptr<epoll_event> shared_events(events, [&events](epoll_event* ptr){
             delete[] events;
@@ -301,7 +303,7 @@ namespace agent{
 
         while(true){
             uint64_t next_timeout = 0;
-            AGENT_LOG_DEBUG(g_logger) << "[IOMANAGER IDLE Coroutine] Begin loop epoll_wait";
+            // AGENT_LOG_DEBUG(g_logger) << "[IOMANAGER IDLE Coroutine] Begin loop epoll_wait";
             if(stopping(next_timeout)){
                 AGENT_LOG_INFO(g_logger) << "name = " << m_name << " idle stopping exit";
                 break;
@@ -309,7 +311,7 @@ namespace agent{
             
             int rt = 0;
             do{
-                static const int MAX_TIMEOUT = 5000;
+                static const int MAX_TIMEOUT = 3000;
                 
                 if(next_timeout != ~0ull && next_timeout > 0){
                     next_timeout = (int)next_timeout > MAX_TIMEOUT? MAX_TIMEOUT: next_timeout; 
@@ -342,10 +344,10 @@ namespace agent{
                 }
 
                 FdContext* fd_ctx = (FdContext*)event.data.ptr;
-                AGENT_LOG_DEBUG(g_logger) << "[Thread "<< Utils::getThreadId() << "] " << fd_ctx -> fd << ", Tragger events: [" << Utils::print_epoll_events(event.events) << "]";
-                FdContext::MutexType::Lock lock(fd_ctx -> mutex);
+                //AGENT_LOG_DEBUG(g_logger) << "[Thread "<< Utils::getThreadId() << "] " << fd_ctx -> fd << ", Tragger events: [" << Utils::print_epoll_events(event.events) << "]";
+                FdContext::FdCtxMutexType::Lock lock(fd_ctx -> mutex);
                 if(event.events & (EPOLLERR | EPOLLHUP)){
-                    event.events &= EPOLLIN | EPOLLOUT;
+                    event.events &= (EPOLLIN | EPOLLOUT);
                 }
 
                 int real_events = NONE;
@@ -360,11 +362,13 @@ namespace agent{
                     continue;
                 }
                 // AGENT_LOG_ERROR(g_logger) << fd_ctx -> fd << ", events: [" << Utils::print_epoll_events(event.events) << "]";
-                int left_events = (fd_ctx -> event & real_events);
+                int left_events = (fd_ctx -> event & ~real_events);
                 int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
                 event.events = EPOLLET | left_events;
 
-                AGENT_LOG_DEBUG(g_logger) << "[Thread  "<< Utils::getThreadId() << "] " <<  fd_ctx -> fd << ", Left events: [" << Utils::print_epoll_events(event.events) << "]";
+                // AGENT_LOG_DEBUG(g_logger) << "[Thread  "<< Utils::getThreadId() << "] " <<  fd_ctx -> fd 
+                //                           << ", Left events: [" << Utils::print_epoll_events(event.events) << "]"
+                //                           << " op: [" << op << "]";
 
                 int rt2 = epoll_ctl(m_epfd, op, fd_ctx -> fd, &event);
                 if(rt2){

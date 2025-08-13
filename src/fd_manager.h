@@ -13,11 +13,9 @@ namespace agent{
         FdCtx(int fd);
         ~FdCtx();
 
-        bool init();
         bool isInit() const{return m_isInit;}
         bool isSocket() const {return m_isSocket;}
         bool isClose() const {return m_isClosed;}
-        bool close();
 
         void setUserNonblock(bool v) {m_userNonblock = v;}
         bool getUserNonblock() const {return m_userNonblock;}
@@ -27,6 +25,9 @@ namespace agent{
 
         void setTimeout(int type, uint64_t v);
         uint64_t getTimeout(int type);
+    
+    private:
+        bool init();
         
     private:
         bool m_isInit : 1;

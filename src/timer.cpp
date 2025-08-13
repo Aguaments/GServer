@@ -140,12 +140,15 @@ namespace agent{
         }
 
         RWMutexType::WriteLock lock(m_mutex);
+        if(m_timers.empty()) {
+            return;
+        }
 
         bool rollover = detectClockRoller(now_ms);
 
         if(!rollover && ((*m_timers.begin())->m_next > now_ms)){
 
-            AGENT_LOG_ERROR(g_logger) << "[Timer] Timer is not trigger | timer.next" << (*m_timers.begin())->m_next;
+            //AGENT_LOG_ERROR(g_logger) << "[Timer] Timer is not trigger | timer.next " << (*m_timers.begin())->m_next;
             return;
         }
 
@@ -163,7 +166,7 @@ namespace agent{
         for(auto& timer: expired){
             cbs.push_back(timer -> m_cb);
             if(timer -> m_recuring){
-                timer -> m_next += timer -> m_ms;
+                timer -> m_next += now_ms + timer -> m_ms;
                 m_timers.insert(timer);
             }else{
                 timer -> m_cb = nullptr;

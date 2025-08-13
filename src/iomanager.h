@@ -48,7 +48,7 @@ namespace agent
 
     private:
         typedef struct{
-            typedef Mutex MutexType;
+            using FdCtxMutexType = Mutex;
             typedef struct{
                 Scheduler* scheduler = nullptr;       // 执行事件的scheduler
                 Coroutine::ptr coroutine;   // 事件的协程
@@ -63,7 +63,7 @@ namespace agent
             EventContext read;      // 读事件
             EventContext write;     // 写事件
             EventType event = NONE;   // 已注册的事件
-            MutexType mutex;
+            FdCtxMutexType mutex;
         }FdContext;
 
         int m_epfd = 0;

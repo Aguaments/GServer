@@ -158,7 +158,7 @@ namespace agent{
             return m_data->getHeaderAs<uint64_t>("content-length", 0);
         }
 
-        size_t HttpRequestParser::execute(char* data, size_t len, size_t off) {
+        size_t HttpRequestParser::execute(char* data, size_t len) {
             size_t offset = http_parser_execute(&m_parser, data, len, 0);
             memmove(data, data + offset, (len - offset));
             return offset;

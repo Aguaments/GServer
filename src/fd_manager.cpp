@@ -27,8 +27,9 @@ namespace agent{
         if(m_isInit){
             return true;
         }
-        m_recvTimeout = -1;
-        m_sendTimeout = -1;
+
+        // m_recvTimeout = -1;
+        // m_sendTimeout = -1;
 
         struct stat fd_stat;
         if(-1 == fstat(m_fd, &fd_stat)){
@@ -44,6 +45,9 @@ namespace agent{
             if(!(flag & O_NONBLOCK)){
                 fcntl_f(m_fd, F_SETFL, flag |  O_NONBLOCK);
             }
+            m_sysNonblock = true;
+        }else{
+            m_sysNonblock = false;
         }
 
         m_userNonblock = false;
@@ -72,12 +76,13 @@ namespace agent{
     }
 
     FdCtx::ptr FdManager::get(int fd, bool auto_create){
+        if(fd == -1){
+            return nullptr;
+        }
         RWMutexType::ReadLock lock(m_mutex);
-        if((int)m_datas.size() <= fd){
+        if(fd >= (int)m_datas.size()){
             if(auto_create == false){
                 return nullptr;
-            }else{
-                m_datas.resize(fd * 1.5);
             }
         }else{
             if(m_datas[fd]){
@@ -88,13 +93,16 @@ namespace agent{
 
         RWMutexType::WriteLock lock2(m_mutex);
         FdCtx::ptr ctx(new FdCtx(fd));
+        if(auto_create){
+            m_datas.resize(fd * 1.5);
+        }
         m_datas[fd] = ctx;
         return ctx;
     }
 
     void FdManager::del(int fd){
         RWMutexType::WriteLock lock(m_mutex);
-        if((int)m_datas.size() <= fd){
+        if(fd >= (int)m_datas.size()){
             return;
         }
         m_datas[fd].reset();

@@ -8,9 +8,11 @@
 #include "log.h"
 #include "coroutine.h"
 
-agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
 
 namespace agent{
+
+    static agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
+
     pid_t Utils::getThreadId()
     {
         static thread_local pid_t tid = ::syscall(SYS_gettid);

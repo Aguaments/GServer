@@ -57,7 +57,7 @@ namespace agent{
     Coroutine::Coroutine(std::function<void()> cb, size_t stacksize, bool use_caller, std::string name)
     :m_id(s_coroutine_id++), m_cb(cb), m_name(name)
     {
-        AGENT_LOG_INFO(g_logger) << "[Init coroutine] Courtine_ID: [" << m_id << "] Coroutine_Name: ["<< m_name << "]";
+        // AGENT_LOG_INFO(g_logger) << "[Init coroutine] Courtine_ID: [" << m_id << "] Coroutine_Name: ["<< m_name << "]";
         ++s_coroutine_count;
         m_stacksize = stacksize ? stacksize : g_coroutine_stack_size -> getValue();
 
@@ -80,7 +80,7 @@ namespace agent{
         {
             AGENT_ASSERT(m_state == State::TERM || m_state == State::INIT || m_state == State::EXCEPT);
             StackMemoryPool::Free(m_stack, m_stacksize);
-            AGENT_LOG_DEBUG(g_logger) << "[End coroutine]: " << m_id;
+            //AGENT_LOG_INFO(g_logger) << "[End coroutine]: " << m_id;
         }
         else{
             // 主协程没有分配独立的栈，使用的是线程的栈，因此会走到无栈的这条路径上进行协程的释放
@@ -201,7 +201,7 @@ namespace agent{
     void Coroutine::MainFunc()
     {
         Coroutine::ptr cur = GetThis(); // 在协程栈上创建的智能指针
-        AGENT_LOG_INFO(g_logger) << "[Start Main Func] Coroutine name: " << cur -> getName() << " Coroutine num: " << cur -> GetCoroutineId();
+        // AGENT_LOG_INFO(g_logger) << "[Start Main Func] Coroutine name: " << cur -> getName() << " Coroutine num: " << cur -> GetCoroutineId();
         AGENT_ASSERT(cur);
         try
         {
@@ -221,7 +221,7 @@ namespace agent{
 
         
         auto raw_ptr = cur.get();
-        AGENT_LOG_INFO(g_logger) << "[End Main Func] Coroutine name: " << raw_ptr -> getName() << " Coroutine num: " << raw_ptr ->  getId();
+        // AGENT_LOG_INFO(g_logger) << "[End Main Func] Coroutine name: " << raw_ptr -> getName() << " Coroutine num: " << raw_ptr ->  getId();
         cur.reset();
         if(raw_ptr == Scheduler::GetMainCoroutine())
         {

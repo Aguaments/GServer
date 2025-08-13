@@ -12,15 +12,16 @@ namespace agent{
                 return HttpMethod::INVALID_METHOD;
         }
 
-        HttpMethod CharsToHttpMethod(const char* m){
-            #define XX(num, name, string) \
-                if(strcmp(#string, m) == 0) { \
-                    return HttpMethod::name; \
-                }
-                HTTP_METHOD_MAP(XX);
-            #undef XX
-                return HttpMethod::INVALID_METHOD; 
+        HttpMethod CharsToHttpMethod(const char* m) {
+        #define XX(num, name, string) \
+            if(strncmp(#string, m, strlen(#string)) == 0) { \
+                return HttpMethod::name; \
+            }
+            HTTP_METHOD_MAP(XX);
+        #undef XX
+            return HttpMethod::INVALID_METHOD;
         }
+
 
         static const char* s_method_string[] = {
             #define XX(num, name, string) #string,
@@ -128,7 +129,7 @@ namespace agent{
             return true;
         }
 
-        std::ostream& HttpRequest::dump(std::ostream& os){
+        std::ostream& HttpRequest::dump(std::ostream& os) const{
             os << HttpMethodToString(m_method) << " "
                << m_path
                << (m_query.empty() ? "": "?")
@@ -174,7 +175,7 @@ namespace agent{
             m_headers.erase(key);
         }
 
-        std::ostream& HttpResponse::dump(std::ostream& os){
+        std::ostream& HttpResponse::dump(std::ostream& os) const{
             os << "HTTP/" << ((uint32_t)(m_version >> 4))
                << "." << ((uint32_t)(m_version & 0x0F))
                << " " << (uint32_t)m_status << " " 
@@ -195,6 +196,14 @@ namespace agent{
                 os << "\r\n";
             }
             return os;
+        }
+
+
+        std::ostream& operator<<(std::ostream& os, const HttpRequest& req){
+            return req.dump(os);
+        }
+        std::ostream& operator<<(std::ostream& os, const HttpResponse& rsp){
+            return rsp.dump(os);
         }
         
     }

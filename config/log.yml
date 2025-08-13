@@ -16,3 +16,11 @@ logs:
         file: ../log/system_log.txt
       - type: SoutLogAppender
         level: INFO
+http:
+  - request:
+      buffer_size: 4096
+  - reponse:
+      buffer_size: 4096
+
+tcp_server:
+  read_timeout: 100

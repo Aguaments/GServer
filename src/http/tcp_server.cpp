@@ -4,19 +4,17 @@
 
 namespace agent{
 
-    static ConfigVar<uint64_t>::ptr g_tcp_read_timeout = Config::Lookup(
-        "tcp_server.read_timeout", (uint64_t)(60 * 100 * 2),"tcp server read timeout");
-    
     static Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
+
+    static ConfigVar<uint64_t>::ptr g_tcp_read_timeout = Config::Lookup(
+        "tcp_server.read_timeout", (uint64_t)(5000),"tcp server read timeout");
         
-    
     TcpServer::TcpServer(IOManager* worker, IOManager* accept_worker)
     :m_worker(worker)
     ,m_acceptWorker(accept_worker)
     ,m_readTimeout(g_tcp_read_timeout -> getValue())
     ,m_name("agent/1.0.0")
-    ,m_isStop(true)
-    {}
+    ,m_isStop(true){}
 
     TcpServer::~TcpServer(){
         for(auto& i : m_socks){
@@ -64,8 +62,10 @@ namespace agent{
     }
 
     void TcpServer::startAccept(Socket::ptr sock) {
+        AGENT_LOG_DEBUG(g_logger) << "[Start accept]";
         while(!m_isStop){
             Socket::ptr client = sock -> accept();
+            //AGENT_LOG_WARN(g_logger) << "[Accept Socket] " << client -> toString();
             if(client){
                 client -> setRecvTimeout(m_readTimeout);
                 m_worker -> schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
