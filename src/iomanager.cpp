@@ -187,6 +187,7 @@ namespace agent{
         if((int)m_fdContexts.size() < fd){
             return false;
         }
+<<<<<<< HEAD
         FdContext* fd_ctx = m_fdContexts[fd];
         if(!fd_ctx){
             return false;
@@ -223,6 +224,46 @@ namespace agent{
         
         AGENT_ASSERT(fd_ctx -> event == 0);
         return true;
+=======
+        if(!m_fdContexts[fd]) {
+            return false;
+        }
+        FdContext* fd_ctx = m_fdContexts[fd];
+        lock.unlock();
+
+        FdContext::FdCtxMutexType::Lock lock2(fd_ctx -> mutex);
+        {
+            if(!(fd_ctx ->event)){
+                return false;
+            }
+
+            int op = EPOLL_CTL_DEL;
+
+            epoll_event ep_event;
+            ep_event.events = 0;
+            ep_event.data.ptr = fd_ctx;
+
+            int rt = epoll_ctl(m_epfd, op, fd, &ep_event);
+            if(-1 == rt){
+                AGENT_LOG_ERROR(g_logger) << "epoll_ctl (" << m_epfd << ", "
+                    << op << ", " << fd << ", " << ep_event.events << ") :"
+                    << rt << " (" << errno << ") (" << strerror(errno) << ")";
+                return false;
+            }
+
+            if(fd_ctx -> event & READ){
+                fd_ctx -> triggerEvent(READ);
+                -- m_pendingEventCount;
+            }
+            if(fd_ctx -> event & WRITE){
+                fd_ctx -> triggerEvent(WRITE);
+                -- m_pendingEventCount;
+            }
+            
+            AGENT_ASSERT(fd_ctx -> event == 0);
+            return true;
+        }
+>>>>>>> f0ef15c (rebuild repository after corruption)
     }
       
 

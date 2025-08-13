@@ -17,9 +17,16 @@ void run(){
 }
 
 int main(){
+<<<<<<< HEAD
     agent::IOManager iom(8);
     iom.schedule(run);
     sleep(10000);
+=======
+    agent::IOManager iom(7);
+    iom.schedule(run);
+
+    sleep(100000);
+>>>>>>> f0ef15c (rebuild repository after corruption)
     return 0;
 }
 

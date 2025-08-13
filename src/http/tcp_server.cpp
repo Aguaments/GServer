@@ -62,11 +62,19 @@ namespace agent{
     }
 
     void TcpServer::startAccept(Socket::ptr sock) {
+<<<<<<< HEAD
         AGENT_LOG_DEBUG(g_logger) << "[Start accept]";
         while(!m_isStop){
             Socket::ptr client = sock -> accept();
             //AGENT_LOG_WARN(g_logger) << "[Accept Socket] " << client -> toString();
             if(client){
+=======
+        AGENT_LOG_DEBUG(g_logger) << "[Accept] start accept coroutine.";
+        while(!m_isStop){
+            Socket::ptr client = sock -> accept();
+            if(client){
+                // AGENT_LOG_DEBUG(g_logger) << "[Accept] accept new client: " << client -> toString();
+>>>>>>> f0ef15c (rebuild repository after corruption)
                 client -> setRecvTimeout(m_readTimeout);
                 m_worker -> schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
             }else{
@@ -100,6 +108,10 @@ namespace agent{
 
 
     void TcpServer::handleClient(Socket::ptr client){
+<<<<<<< HEAD
         AGENT_LOG_INFO(g_logger) << "handleClient: " << *client;
+=======
+        AGENT_LOG_INFO(g_logger) << "[handleClient] " << *client;
+>>>>>>> f0ef15c (rebuild repository after corruption)
     }
 }

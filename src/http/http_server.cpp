@@ -17,9 +17,15 @@ namespace agent{
             do{
                 auto req  = session -> recvRequest();
                 if(!req){
+<<<<<<< HEAD
                     AGENT_LOG_WARN(g_logger) << "recv http request fail, errno=" << errno 
                                              << " errstr=" << strerror(errno)
                                              << " client: " << *client;
+=======
+                    // AGENT_LOG_WARN(g_logger) << "recv http request fail, errno=" << errno 
+                    //                          << " errstr=" << strerror(errno)
+                    //                          << " client: " << *client;
+>>>>>>> f0ef15c (rebuild repository after corruption)
                     break;
                 }
 
