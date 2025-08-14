@@ -255,7 +255,9 @@ namespace agent{
                 return getAs(m_cookies, key, def);
             }
 
+
             std::ostream& dump(std::ostream& os) const;
+            std::string toString() const;
 
             bool isClose() const { return m_close;}
             void setClose(bool v) { m_close = v;}
@@ -313,6 +315,7 @@ namespace agent{
             }
 
             std::ostream& dump(std::ostream& os) const;
+            std::string toString() const;
 
         private:
             HttpStatus m_status;

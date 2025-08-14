@@ -13,13 +13,11 @@ namespace agent{
     namespace http{
         class Servlet
         {
-        private:
-            /* data */
         public:
             using ptr = std::shared_ptr<Servlet>;
             Servlet(const std::string& name):m_name(name){}
-            virtual ~Servlet();
-            virtual int32_t handle(HttpRequest::ptr request, HttpResponse::ptr response, HttpSession::ptr session);
+            virtual ~Servlet(){};
+            virtual int32_t handle(HttpRequest::ptr request, HttpResponse::ptr response, HttpSession::ptr session) = 0;
             
             const std::string& getName() const {return m_name;}
 
@@ -37,6 +35,13 @@ namespace agent{
             
         private:
             callback m_cb;
+        };
+
+        class NotFoundServlet: public Servlet{
+        public:
+            using ptr = std::shared_ptr<NotFoundServlet>;
+            NotFoundServlet();
+            virtual int32_t handle(HttpRequest::ptr request, HttpResponse::ptr response, HttpSession::ptr session);
         };
         
         class ServletDispatch: public Servlet{
@@ -61,7 +66,7 @@ namespace agent{
             Servlet::ptr getGlobServlet(const std::string& uri);
             
             Servlet::ptr getDefault() const {return m_default;}
-            void setDefault(Servlet::ptr v);
+            void setDefault(Servlet::ptr v){m_default = v;};
 
             Servlet::ptr getMatchedServlet(const std::string& uri);
         private:
@@ -70,6 +75,7 @@ namespace agent{
             // uri(/agent/*) --> servlet
             std::vector<std::pair<std::string, Servlet::ptr>> m_globs;
             Servlet::ptr m_default;
+            RWMutexType m_mutex;
         };
         
     }

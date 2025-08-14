@@ -5,11 +5,10 @@ namespace agent{
     namespace http{
         static agent::Logger::ptr g_logger = AGENT_LOG_BY_NAME("system");
 
-        HttpServer::HttpServer(bool keepalive
-                    , IOManager* worker
-                    , IOManager* accept_worker)
-            :TcpServer(worker, accept_worker)
-            ,m_isKeepalive(keepalive) {
+        HttpServer::HttpServer(bool keepalive, IOManager* worker, IOManager* accept_worker)
+        :TcpServer(worker, accept_worker)
+        ,m_isKeepalive(keepalive) {
+            m_dispatch.reset(new ServletDispatch);
         }
 
         void HttpServer::handleClient(Socket::ptr client){
@@ -17,26 +16,20 @@ namespace agent{
             do{
                 auto req  = session -> recvRequest();
                 if(!req){
-<<<<<<< HEAD
-                    AGENT_LOG_WARN(g_logger) << "recv http request fail, errno=" << errno 
-                                             << " errstr=" << strerror(errno)
-                                             << " client: " << *client;
-=======
-                    // AGENT_LOG_WARN(g_logger) << "recv http request fail, errno=" << errno 
-                    //                          << " errstr=" << strerror(errno)
-                    //                          << " client: " << *client;
->>>>>>> f0ef15c (rebuild repository after corruption)
+
                     break;
                 }
+                // AGENT_LOG_INFO(g_logger) << "[Request] "
+                // << HttpMethodToString(req -> getMethod()) << " " 
+                // << req -> getPath() << " "
+                // << "HTTP/" 
+                // << ((uint32_t)(req -> getVersion() >> 4))
+                // << "." << ((uint32_t)(req -> getVersion() & 0x0F)) << " "
+                // << HttpStatusToString(req -> getStatus());
+                
 
                 HttpResponse::ptr rsp(new HttpResponse(req -> getVersion(), req -> isClose() || !m_isKeepalive));
-                rsp ->setBody("hello agent");
-
-                // AGENT_LOG_DEBUG(g_logger) << "request: " << std::endl <<  *req;
-                // AGENT_LOG_DEBUG(g_logger) << "response: " << std::endl <<  *rsp;
-                AGENT_LOG_INFO(g_logger) << "[HandleClient]"
-                                         << " [Request]: " << *req
-                                         << " [Response] " << *rsp;
+                m_dispatch -> handle(req, rsp, session);
                 session->sendResponse(rsp);
                 
             }while(m_isKeepalive);

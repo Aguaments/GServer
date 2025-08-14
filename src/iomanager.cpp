@@ -45,7 +45,7 @@ namespace agent{
     }
     IOManager::~IOManager()
     {
-        // stop();
+        stop();
         close(m_epfd);
         close(m_tickleFds[0]);
         close(m_tickleFds[1]);
@@ -187,44 +187,7 @@ namespace agent{
         if((int)m_fdContexts.size() < fd){
             return false;
         }
-<<<<<<< HEAD
-        FdContext* fd_ctx = m_fdContexts[fd];
-        if(!fd_ctx){
-            return false;
-        }
-        FdContext::FdCtxMutexType::Lock lock2(fd_ctx -> mutex);
-        // lock.unlock();
 
-        if(!(fd_ctx ->event)){
-            return false;
-        }
-
-        int op = EPOLL_CTL_DEL;
-
-        epoll_event ep_event;
-        ep_event.events = 0;
-        ep_event.data.ptr = fd_ctx;
-
-        int rt = epoll_ctl(m_epfd, op, fd, &ep_event);
-        if(-1 == rt){
-            AGENT_LOG_ERROR(g_logger) << "epoll_ctl (" << m_epfd << ", "
-                << op << ", " << fd << ", " << ep_event.events << ") :"
-                << rt << " (" << errno << ") (" << strerror(errno) << ")";
-            return false;
-        }
-
-        if(fd_ctx -> event & READ){
-            fd_ctx -> triggerEvent(READ);
-            -- m_pendingEventCount;
-        }
-        if(fd_ctx -> event & WRITE){
-            fd_ctx -> triggerEvent(WRITE);
-            -- m_pendingEventCount;
-        }
-        
-        AGENT_ASSERT(fd_ctx -> event == 0);
-        return true;
-=======
         if(!m_fdContexts[fd]) {
             return false;
         }
@@ -263,17 +226,12 @@ namespace agent{
             AGENT_ASSERT(fd_ctx -> event == 0);
             return true;
         }
->>>>>>> f0ef15c (rebuild repository after corruption)
     }
       
 
     IOManager* IOManager::GetThis(){ // 获取当前的io manager
         return dynamic_cast<IOManager*>(Scheduler::GetThis());
     }  
-
-    // void IOManager::tickle()
-    // bool IOManager::stopping()
-    // void IOManager::idle()
 
     void IOManager::contextResize(size_t size){
         m_fdContexts.resize(size);
@@ -313,10 +271,6 @@ namespace agent{
     }
 
     void IOManager::FdContext::triggerEvent(EventType ev){
-    //     AGENT_LOG_DEBUG(g_logger) << "[Trigger Event] fd=" << fd
-    //    << " trigger Event =" << ev
-    //    << " fdContext events =" << event;
-        // AGENT_ASSERT(event & ev);
         event = (EventType)(event & ~ev);
 
         EventContext& ev_ctx = getContext(ev);

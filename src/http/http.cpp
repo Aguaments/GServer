@@ -155,6 +155,11 @@ namespace agent{
             }
             return os;
         }
+        std::string HttpRequest::toString() const{
+            std::stringstream ss;
+            dump(ss);
+            return ss.str();
+        }
 
         HttpResponse::HttpResponse(uint8_t version, bool close)
         :m_status(HttpStatus::OK)
@@ -196,6 +201,12 @@ namespace agent{
                 os << "\r\n";
             }
             return os;
+        }
+
+        std::string HttpResponse::toString() const{
+            std::stringstream ss;
+            dump(ss);
+            return ss.str();
         }
 
 
