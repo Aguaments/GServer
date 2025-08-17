@@ -74,7 +74,7 @@ namespace agent{
                 if(length >= unresolve_bytes){
                     // 如果长度大于等用户未解析的字节数，就直接把数据写入body
                     memcpy(&body[0], buff_raw_ptr, unresolve_bytes);
-                    len = length;
+                    len = unresolve_bytes;
                 }else{
                     memcpy(&body[0], buff_raw_ptr, length);
                     len = length;
